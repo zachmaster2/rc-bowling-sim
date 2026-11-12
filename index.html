@@ -356,10 +356,20 @@ function buildWorld(canvas) {
   W.pins = PIN_SPOTS.map(() => { const outer = new THREE.Group(), m = makePinMesh(false); m.position.y = -DIM.pinCG; outer.add(m); scene.add(outer); return outer; });
   return W;
 }
-const CAM = { pitch: -30, vfov: 66 };
+const CAM = { margin: 26, fLife: 2100, topH: 2 * DIM.pinH, side: 0.12 };
+function frameFor(eyeS, bS, bX, w, h) {
+  const H = DIM.eyeH, R = DIM.ballR, c = h / 2 - CAM.margin, cw = w / 2 - CAM.margin;
+  const top = -Math.atan2(H - CAM.topH, DIM.headS + 3 * DIM.rowSpacing - eyeS);
+  const d = Math.max(0.5, bS - eyeS), bot = -(Math.atan2(H - R, d) + Math.asin(R / Math.hypot(d, H - R)));
+  const X = Math.max(DIM.laneW / 2, Math.abs(bX) + R) + CAM.side;
+  const fMax = Math.min(c / Math.tan((top - bot) / 2), CAM.fLife); let f = fMax;
+  for (let i = 0; i < 8; i++) { const p = top - Math.atan(c / f); f = Math.min(fMax, cw * (d * Math.cos(p) + (R - H) * Math.sin(p)) / X); }
+  return { f, pitch: (top - Math.atan(c / f)) * 180 / Math.PI, vfov: 2 * Math.atan(h / 2 / f) * 180 / Math.PI };
+}
 function setCamera() {
-  const cam = W.camera; cam.position.set(0, DIM.eyeH, -(W.eyeS != null ? W.eyeS : DIM.eyeS));
-  cam.fov = CAM.vfov; cam.rotation.set(CAM.pitch * Math.PI / 180, 0, 0);
+  const cam = W.camera, r = W.renderer.domElement.getBoundingClientRect(), w = r.width || 390, h = r.height || 498;
+  const eyeS = W.eyeS != null ? W.eyeS : DIM.eyeS, b = W.frameBall || { s: DIM.startS, x: 0 }, fr = frameFor(eyeS, b.s, b.x, w, h); W.frame = fr;
+  cam.position.set(0, DIM.eyeH, -eyeS); cam.aspect = w / h; cam.fov = fr.vfov; cam.rotation.set(fr.pitch * Math.PI / 180, 0, 0);
   cam.updateProjectionMatrix(); cam.updateMatrixWorld(true);
 }
 const PHYS_PAR = {
@@ -457,8 +467,9 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
 };
-const DEFAULTS = { scheme: "A", curve: "on", sensing: "ideal", phoneTurn: "off", board: 20, nudge: 0.30, marker: "on", ballStart: 3.5, walk: "on" };
-const S = Object.assign({}, DEFAULTS, store.get("rcbowl.settings", {}));
+const DEFAULTS = { scheme: "A", curve: "on", sensing: "ideal", phoneTurn: "off", board: 20, nudge: 0.30, marker: "on", ballStart: 1.5, walk: "on", v: 2 };
+const STORED = store.get("rcbowl.settings", {}); if (STORED.v !== 2) { if (STORED.ballStart === 3.5) delete STORED.ballStart; STORED.v = 2; }
+const S = Object.assign({}, DEFAULTS, STORED);
 const saveSettings = () => store.set("rcbowl.settings", S);
 const CTL = { mode: "strip", heading: 0, lastRaw: null, ref: 0, strip: 0, askedAt: 0, got: false, gotAt: 0, perm: null,
   stickId: null, defl: 0, theta: 0, bx: 0, by: 0 };
@@ -755,6 +766,7 @@ function loop(ts) {
   }
   syncPins();
   eyeTick(dt); W.eyeS = G.eyeS;
+  if (G.phase === "ready" || G.phase === "rolling" || G.phase === "gutter") { const bw = ballWorld(); W.frameBall = { s: Math.min(bw.s, DIM.headS), x: bw.x }; }
   setCamera();
   W.renderer.render(W.scene, W.camera); updateHud(false);
 }
@@ -771,7 +783,9 @@ function init() {
     cam() { const r = $("cv").getBoundingClientRect(), c = W.camera; return { fov: c.fov, pitch: c.rotation.x * 180 / Math.PI, yaw: -c.rotation.y * 180 / Math.PI, pos: [c.position.x, c.position.y, c.position.z], rect: { left: r.left, top: r.top, width: r.width, height: r.height }, dpr: W.renderer.getPixelRatio() }; },
     dim: DIM, spots: PIN_SPOTS, boardX, plantRun, chart: CHART.chart, chartF: [CHART.F0, CHART.F1], pinTest, stickCurve,
     setEye(s) { G.eyeS = G.eyeCmd = s; return s; },
-    state() { const p = G.p; return { pins: PH.inPlay.map((v, i) => v ? (PH.pinDown(i) ? 'down' : 'up') : 'gone'), spotErr: Math.max(0, ...PH.pins.map((b, i) => PH.inPlay[i] ? Math.hypot(b.position.x - b.spot[0], -b.position.z - b.spot[1]) : 0)), cardOpen: !$("card").hidden, eyeS: G.eyeS, phase: G.phase, ball: G.ballNo, s: p ? ballS(p) : null, x: p ? p.y : null, v: speed(), psi: psiC(), mode: CTL.mode, defl: CTL.defl, theta: CTL.theta, bx: CTL.bx, by: CTL.by, pins1: G.pins1, pins2: G.pins2, frameDone: G.frameDone, res: G.res, physT: G.physT, frames, line: G.line, mesh: W.ball.position.toArray().map(v => +v.toFixed(3)), meshVis: W.ball.visible }; },
+    setBall(s, x) { G.p.x = s + PL.APPROACH; G.p.y = x || 0; G.prev = { x: G.p.x, y: G.p.y }; placeBallMesh(G.p.x, G.p.y, 0, true); return [s, x || 0]; },
+    frame() { return Object.assign({}, W.frame); },
+    state() { const p = G.p; return { pins: PH.inPlay.map((v, i) => v ? (PH.pinDown(i) ? 'down' : 'up') : 'gone'), spotErr: Math.max(0, ...PH.pins.map((b, i) => PH.inPlay[i] ? Math.hypot(b.position.x - b.spot[0], -b.position.z - b.spot[1]) : 0)), cardOpen: !$("card").hidden, eyeS: G.eyeS, phase: G.phase, ball: G.ballNo, s: p ? ballS(p) : null, x: p ? p.y : null, v: speed(), psi: psiC(), mode: CTL.mode, defl: CTL.defl, theta: CTL.theta, bx: CTL.bx, by: CTL.by, frames, pins1: G.pins1, pins2: G.pins2, frameDone: G.frameDone, res: G.res, physT: G.physT, frames, line: G.line, mesh: W.ball.position.toArray().map(v => +v.toFixed(3)), meshVis: W.ball.visible }; },
     settings(o) { if (o) { Object.assign(S, o); saveSettings(); } return Object.assign({}, S); },
     log: () => allShots(),
     timeScale(v) { if (v > 0) TS = v; return TS; },
