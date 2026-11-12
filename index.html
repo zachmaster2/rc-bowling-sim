@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>RC Bowling Simulator</title>
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{
+  color-scheme: dark;
+  --bg:#0b0c0f; --view-bg:#07080a; --panel:#14161b; --panel-2:#1b1e25; --line:#2a2e37;
+  --ink:#e9e6df; --ink-dim:#9a9a96; --ink-faint:#6b6d70; --accent:#f2b544; --accent-ink:#1a1408;
+  --stick-ring:rgba(233,230,223,.28); --stick-fill:rgba(233,230,223,.06); --knob:#e9e6df; --knob-ink:#14161b;
+  --hud-bg:rgba(10,11,14,.55); --card:#171a20f2; --ok:#7fd18b; --warn:#f2b544; --bad:#ff7a6b; --strip:#20242c; --strip-tick:#4d5566;
+  --marker:#f2b544;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --gut-l: max(16px, env(safe-area-inset-left, 0px)); --gut-r: max(16px, env(safe-area-inset-right, 0px));
+}
+html{height:100%;box-sizing:border-box;overflow:hidden;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden;overscroll-behavior:none;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none !important}
+button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+#app{position:relative;height:100%;display:grid;grid-template-rows:minmax(0,3fr) minmax(150px,1fr);background:var(--bg)}
+#view{position:relative;overflow:hidden;background:var(--view-bg);touch-action:none}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hud{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;
+  padding:6px var(--gut-r) 0 var(--gut-l);pointer-events:none;font-size:11px;line-height:1.3;font-variant-numeric:tabular-nums}
+.hud .blk{background:var(--hud-bg);border-radius:8px;padding:3px 7px;white-space:nowrap;pointer-events:auto}
+.hud .blk b{font-weight:600;color:var(--ink)} .hud .blk span{color:var(--ink-dim)}
+.hud .right{display:flex;gap:6px;align-items:flex-start;text-align:right}
+.iconbtn{pointer-events:auto;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--hud-bg);display:grid;place-items:center;padding:0;cursor:pointer}
+.iconbtn svg{width:17px;height:17px;fill:none;stroke:var(--ink);stroke-width:1.7}
+#viewBtn{position:absolute;left:var(--gut-l);bottom:8px;height:30px;padding:0 10px;border-radius:8px;border:1px solid var(--line);background:var(--hud-bg);font-size:12px;cursor:pointer}
+#marker{position:absolute;left:50%;bottom:4px;width:30px;height:36px;margin-left:58px;pointer-events:none;transform-origin:50% 85%}
+#marker svg{width:100%;height:100%}
+#ballMsg{position:absolute;right:var(--gut-r);bottom:8px;display:flex;gap:6px}
+.pill{height:30px;padding:0 12px;border-radius:15px;border:1px solid var(--line);background:var(--card);font-size:12px;cursor:pointer}
+.pill.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+/* result card */
+#card{position:absolute;left:var(--gut-l);right:var(--gut-r);top:58px;margin:0 auto;max-width:340px;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;padding:12px 14px;font-size:13px;line-height:1.45;font-variant-numeric:tabular-nums;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#card h2{margin:0 0 6px;font-size:17px;font-weight:650;letter-spacing:.01em}
+#card .row{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding:4px 0}
+#card .row span:first-child{color:var(--ink-dim)}
+#card .chart{margin-top:6px;padding:7px 9px;border-radius:9px;background:var(--panel-2);color:var(--ink);font-size:12.5px}
+#card .chart b{color:var(--accent)}
+#card .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:9px}
+/* controller panel */
+#panel{position:relative;background:var(--panel);border-top:1px solid var(--line);touch-action:none;display:flex;flex-direction:column;overflow:hidden}
+#strip{position:relative;flex:0 0 30px;margin:6px var(--gut-r) 0 var(--gut-l);border-radius:8px;background:var(--strip);overflow:hidden;touch-action:none;cursor:ew-resize}
+#stripTicks{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+#stripLbl{position:absolute;inset:0;display:grid;place-items:center;font-size:10.5px;color:var(--ink-dim);pointer-events:none;letter-spacing:.04em}
+#prow{position:relative;flex:1 1 auto;display:flex;min-height:0}
+#zone{position:relative;flex:1 1 auto;touch-action:none;cursor:crosshair;margin-left:env(safe-area-inset-left,0px)}
+#zoneHint{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-faint);font-size:12px;pointer-events:none;text-align:center;padding:0 10px}
+#ring{position:absolute;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:2px solid var(--stick-ring);background:var(--stick-fill);
+  pointer-events:none;opacity:0;transition:opacity .25s}
+#ring.on{opacity:1;transition:opacity .05s}
+#knob{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:var(--knob);box-shadow:0 2px 8px rgba(0,0,0,.5)}
+#knob.home{transition:transform .14s ease-out}
+#bcol{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;padding:0 var(--gut-r) 0 6px}
+#recenter{width:68px;height:68px;border-radius:14px;border:1px solid var(--accent);background:var(--panel-2);color:var(--accent);font-size:12.5px;font-weight:600;cursor:pointer}
+#recenter:active{background:var(--accent);color:var(--accent-ink)}
+#src{font-size:10.5px;color:var(--ink-dim)}
+#prompt{max-width:84px;text-align:center;font-size:10px;line-height:1.25;color:var(--warn);pointer-events:none}
+/* settings sheet */
+#sheet{position:absolute;left:0;right:0;bottom:0;max-height:78%;background:var(--panel);border-top:1px solid var(--line);border-radius:16px 16px 0 0;
+  padding:10px var(--gut-r) calc(14px + env(safe-area-inset-bottom,0px)) var(--gut-l);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;
+  box-shadow:0 -12px 40px rgba(0,0,0,.6);font-size:13.5px;z-index:5}
+#sheet h3{margin:2px 0 8px;font-size:16px;display:flex;justify-content:space-between;align-items:center}
+.set{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.set label{color:var(--ink)} .set small{display:block;color:var(--ink-dim);font-size:11px}
+.seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;flex:0 0 auto}
+.seg button{border:0;background:transparent;padding:6px 10px;font-size:12.5px;cursor:pointer;color:var(--ink-dim)}
+.seg button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.num{display:flex;align-items:center;gap:6px}
+.num button{width:32px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);cursor:pointer}
+.num output{min-width:44px;text-align:center;font-variant-numeric:tabular-nums}
+.tag{font-size:10px;padding:1px 5px;border-radius:5px;background:var(--warn);color:var(--accent-ink);margin-left:4px;font-weight:600}
+#logTxt{width:100%;height:110px;margin-top:8px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;font:11px ui-monospace,Menlo,monospace;
+  -webkit-user-select:text;user-select:text}
+#sheetMsg{color:var(--ok);font-size:12px;min-height:16px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="view">
+    <canvas id="cv" aria-label="Lane view from the driver's eye"></canvas>
+    <div class="hud" id="hud">
+      <div class="blk" id="hudL"><b id="hSpd">0.00 m/s</b> <span id="hMph">0.0 mph</span><br><span>to head pin</span> <b id="hDist">23.86 m</b></div>
+      <div class="right">
+        <div class="blk" id="hudR"><span>aim</span> <b id="hPsi">+0.0°</b><br><b id="hBall">Ball 1</b> <span id="hSrc">· Strip</span></div>
+        <button class="iconbtn" id="gear" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/></svg></button>
+      </div>
+    </div>
+    <button id="viewBtn">Zoom</button>
+    <div id="marker"><svg viewBox="0 0 34 40"><path d="M17 2 L28 20 L20.5 20 L20.5 37 L13.5 37 L13.5 20 L6 20 Z" fill="var(--marker)" fill-opacity=".85" stroke="#000" stroke-opacity=".45" stroke-width="1"/></svg></div>
+    <div id="ballMsg"><button class="pill" id="resetBall" hidden>Reset ball</button></div>
+    <div id="card" hidden></div>
+  </div>
+  <div id="panel">
+    <div id="strip" hidden><canvas id="stripTicks"></canvas><div id="stripLbl">◀ drag to turn the controller ▶</div></div>
+    <div id="prow">
+      <div id="zone"><div id="zoneHint">Put your thumb anywhere here — push to drive</div><div id="ring"><div id="knob"></div></div></div>
+      <div id="bcol"><button id="recenter">Recenter</button><div id="src">Strip</div><div id="prompt" hidden>Tap Recenter to enable motion</div></div>
+    </div>
+  </div>
+  <div id="sheet" hidden>
+    <h3>Settings <button class="pill" id="sheetClose">Done</button></h3>
+    <div class="set"><label>Scheme<small id="schemeNote">Point the phone, push the stick</small></label><div class="seg" data-k="scheme"><button data-v="A">A Point+push</button><button data-v="B">B Line hold<span class="tag">EXP</span></button></div></div>
+    <div class="set"><label>Stick curve<small>flat near straight ahead (±30°)</small></label><div class="seg" data-k="curve"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
+    <div class="set"><label>Sensing<small>the ball's knowledge of the controller</small></label><div class="seg" data-k="sensing"><button data-v="ideal">Ideal</button><button data-v="designed">As designed</button></div></div>
+    <div class="set"><label>View</label><div class="seg" data-k="view"><button data-v="whole">Whole lane</button><button data-v="zoom">Zoom</button></div></div>
+    <div class="set"><label>Start board<small>1-39, counted from the right; 20 = centre</small></label><div class="num" data-k="board" data-min="1" data-max="39" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
+    <div class="set" id="nudgeRow"><label>Nudge speed<small>Scheme B: full sideways stick</small></label><div class="num" data-k="nudge" data-min="0.10" data-max="0.60" data-step="0.05"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
+    <div class="set"><label>Pointing marker</label><div class="seg" data-k="marker"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
+    <div class="set"><label>Shot log<small id="logCount">0 balls kept</small></label><div style="display:flex;gap:6px"><button class="pill" id="copyLog">Copy shot log</button><button class="pill" id="clearLog">Clear…</button></div></div>
+    <div class="set" id="clearAsk" hidden><label>Clear all kept balls?</label><div style="display:flex;gap:6px"><button class="pill" id="clearNo">Keep</button><button class="pill primary" id="clearYes">Clear</button></div></div>
+    <div id="sheetMsg"></div>
+    <textarea id="logTxt" readonly hidden></textarea>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+<script>
+(function () {
+"use strict";
+const IN = 0.0254, FT = 0.3048;
+const DIM = {
+  laneLen: 60 * FT,
+  laneW: 41.5 * IN,
+  approach: 4.57,
+  gutterW: 9.25 * IN, gutterD: 1.875 * IN,
+  deckPast: 34.1875 * IN,
+  pinH: 15.0 * IN, pinBelly: 4.766 * IN, pinBellyH: 4.5 * IN, pinBase: 2.031 * IN,
+  pinMass: (3 + 8 / 16) * 0.45359237, pinCG: 5.781 * IN, pinRG2: 13.90 * IN * IN, pinCOR: 0.670,
+  pinSpacing: 12 * IN, rowSpacing: 10.392 * IN,
+  kickback: 60.125 * IN, kickH: 20.5 * IN, pitDrop: 10 * IN, cushion: 25 * IN,
+  ballR: 0.108, ballM: 7.2, ballRG: 2.63 * IN,
+  eyeH: 1.64, eyeBack: 1.0,
+};
+DIM.board = DIM.laneW / 39;
+DIM.headS = DIM.laneLen;
+DIM.deckEnd = DIM.headS + DIM.deckPast;
+DIM.deckStart = DIM.headS - 0.30;
+DIM.startS = -DIM.approach;
+DIM.eyeS = DIM.startS - DIM.eyeBack;
+function boardX(n) { return DIM.laneW / 2 - (n - 0.5) * DIM.board; }
+const PIN_SPOTS = (() => {
+  const out = []; let n = 1;
+  for (let r = 0; r < 4; r++) for (let k = 0; k <= r; k++) out.push([n++, (k - r / 2) * DIM.pinSpacing, DIM.headS + r * DIM.rowSpacing]);
+  return out;
+})();
+const PL = { G: 9.81, A_DRIVE: 0.8899, APPROACH: 4.57, OIL: 12.20, LANE: 18.12, MU: [0.2, 0.04, 0.2], WN: 2 * Math.PI * 1.823, ZETA: 0.7, DT: 0.01,
+  SLIP: 0.03, DV: 0.005, TAU: 0.4, T_SOLVE: 0.3 };
+function grip(x) { return (x < PL.APPROACH ? PL.MU[0] : x < PL.APPROACH + PL.OIL ? PL.MU[1] : PL.MU[2]) * PL.G; }
+function makePlant(x0, y0) { return { x: x0 || 0, y: y0 || 0, vx: 0, vy: 0, ax: 0, ay: 0, jx: 0, jy: 0 }; }
+function plantStep(p, c) {
+  const DT = PL.DT, fwd = c.dir * Math.PI / 180, ux = Math.cos(fwd), uy = Math.sin(fwd), mug = grip(p.x);
+  let cx = 0, cy = 0;
+  if (c.go) {
+    const A = Math.min(c.stick * PL.A_DRIVE, mug);
+    let an = Math.hypot(p.ax, p.ay) + 1e-12; const slipping = (mug < PL.A_DRIVE - 1e-9) && (an > 0.98 * mug);
+    const nx = c.dvNoise ? c.dvNoise() : 0, ny = c.dvNoise ? c.dvNoise() : 0;
+    const vox = p.vx + (slipping ? PL.SLIP * p.ax / an : 0) + nx, voy = p.vy + (slipping ? PL.SLIP * p.ay / an : 0) + ny;
+    const vperp = -vox * uy + voy * ux;
+    if (c.law === "line") {
+      const aperp = Math.max(-A, Math.min(A, (c.lineSide - vperp) / PL.TAU));
+      const room = Math.sqrt(Math.max(A * A - aperp * aperp, 0)), apar = Math.sign(c.lineFwd) * Math.min(Math.abs(c.lineFwd) * PL.A_DRIVE, room);
+      cx = apar * ux - aperp * uy; cy = apar * uy + aperp * ux;
+    } else {
+      const aperp = -Math.max(-A, Math.min(A, vperp / PL.TAU)), apar = Math.sqrt(Math.max(A * A - aperp * aperp, 0));
+      cx = apar * ux - aperp * uy; cy = apar * uy + aperp * ux;
+    }
+  }
+  const W2 = PL.WN * PL.WN, Z2 = 2 * PL.ZETA * PL.WN;
+  p.jx += DT * (W2 * (cx - p.ax) - Z2 * p.jx); p.jy += DT * (W2 * (cy - p.ay) - Z2 * p.jy); p.ax += DT * p.jx; p.ay += DT * p.jy;
+  const an2 = Math.hypot(p.ax, p.ay), sc = Math.min(1, mug / Math.max(an2, 1e-12)), axe = p.ax * sc, aye = p.ay * sc;
+  p.vx += DT * axe; p.vy += DT * aye; p.x += DT * p.vx; p.y += DT * p.vy;
+}
+function plantRun(o) {
+  o = Object.assign({ stick: 1, turn_x: null, turn_deg: 0, T: 14 }, o || {});
+  const p = makePlant(0, 0), xf = PL.APPROACH, xp = PL.APPROACH + PL.LANE; let tRel = Infinity;
+  const r = { t_foul: NaN, t_pins: NaN, v_pins: NaN, y_pins: NaN, v_foul: NaN, crs_pins: NaN, t_turn: NaN, t90: NaN }, ser = [];
+  const n = Math.round(o.T / PL.DT); let prevC = 0, prevT = 0;
+  for (let k = 0; k < n; k++) {
+    const t = (k + 1) * PL.DT; const turned = o.turn_x != null && p.x >= o.turn_x;
+    if (k === 10) tRel = t + PL.T_SOLVE;
+    const x0 = p.x, y0 = p.y, v0 = Math.hypot(p.vx, p.vy);
+    plantStep(p, { dir: turned ? o.turn_deg : 0, stick: o.stick, go: t >= tRel, law: "travel" });
+    const v = Math.hypot(p.vx, p.vy), crs = Math.atan2(p.vy, p.vx) * 180 / Math.PI;
+    if (x0 < xf && p.x >= xf) { r.t_foul = t; r.v_foul = v0 + (xf - x0) / (p.x - x0) * (v - v0); }
+    if (x0 < xp && p.x >= xp) { const f = (xp - x0) / Math.max(p.x - x0, 1e-9); r.t_pins = t; r.v_pins = v; r.y_pins = y0 + f * (p.y - y0); r.crs_pins = crs; }
+    if (o.turn_x != null && isNaN(r.t_turn) && p.x >= o.turn_x) r.t_turn = t;
+    if (!isNaN(r.t_turn) && isNaN(r.t90) && crs >= 0.9 * o.turn_deg && o.turn_deg > 0) r.t90 = prevT + (0.9 * o.turn_deg - prevC) / (crs - prevC) * (t - prevT) - r.t_turn;
+    prevC = crs; prevT = t;
+    if (k % 10 === 0) ser.push([t, p.x, p.y, p.vx, p.vy]);
+    if (k % 100 === 99 && p.x >= xp) break;
+  }
+  r.series = ser; return r;
+}
+function stickCurve(th) { const a = Math.abs(th), u = Math.min(a / 30, 1); return a < 30 ? th * (3 * u * u - 2 * u * u * u) : th; }
+const CHART = (() => {
+  const OFF = []; for (let i = 0; i <= 22; i++) OFF.push(i * 0.25);
+  const C2 = [3, 4, 17, 11, 13, 52, 65, 78, 92, 94, 95, 95, 81, 68, 28, 16, 40, 28, 22, 29, 41, 25, 10];
+  const C4 = [3, 4, 17, 12, 48, 62, 78, 86, 94, 94, 99, 97, 90, 74, 62, 36, 48, 67, 65, 55, 41, 25, 10];
+  const C6 = [3, 4, 22, 58, 57, 87, 94, 93, 97, 100, 100, 99, 94, 83, 78, 48, 50, 69, 78, 56, 41, 25, 10];
+  const RAMP = { 0: 36.3, 1: 39.1, 2: 41.4 };
+  function interp(x, xs, ys) {
+    if (x < xs[0] || x > xs[xs.length - 1]) return 0;
+    let i = 0; while (i < xs.length - 2 && x > xs[i + 1]) i++;
+    const t = (x - xs[i]) / (xs[i + 1] - xs[i]); return ys[i] + t * (ys[i + 1] - ys[i]);
+  }
+  const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+  const narrowed = (f, c = 2.4) => OFF.map(o => interp(c + (o - c) / f, OFF, C2));
+  function solve(ratio) { let lo = 0.4, hi = 1.0; for (let i = 0; i < 50; i++) { const m = 0.5 * (lo + hi); if (mean(narrowed(m)) < ratio * mean(C2)) lo = m; else hi = m; } return 0.5 * (lo + hi); }
+  const F0 = solve(RAMP[0] / RAMP[2]), F1 = solve(RAMP[1] / RAMP[2]);
+  const ANG = [0, 1, 2, 4, 6], CUR = [narrowed(F0), narrowed(F1), C2, C4, C6];
+  function chart(off, phi) {
+    const p = Math.max(0, Math.min(6, phi)); let i = 0; while (i < ANG.length - 2 && p >= ANG[i + 1]) i++;
+    const t = (p - ANG[i]) / (ANG[i + 1] - ANG[i]), lo = interp(off, OFF, CUR[i]), hi = interp(off, OFF, CUR[i + 1]);
+    return (lo + t * (hi - lo)) / 100;
+  }
+  return { chart, F0, F1 };
+})();
+function gauss(rng) { let u = 0, v = 0; while (u === 0) u = rng(); v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function mulberry(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const wrap180 = a => ((a + 180) % 360 + 360) % 360 - 180;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const W = {};
+function canvasTex(w, h, draw, repeatS, repeatT) {
+  const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h);
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = W.aniso || 1;
+  if (repeatS || repeatT) { t.wrapS = repeatS ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping; t.wrapT = repeatT ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping; t.repeat.set(repeatS || 1, repeatT || 1); }
+  return t;
+}
+function boardTex(seed, base, nBoards, w, h, seam) {
+  const rng = mulberry(seed);
+  return canvasTex(w, h, (g) => {
+    const bw = w / nBoards;
+    for (let i = 0; i < nBoards; i++) {
+      const k = 0.94 + 0.10 * rng(); g.fillStyle = `rgb(${base[0] * k | 0},${base[1] * k | 0},${base[2] * k | 0})`; g.fillRect(i * bw, 0, bw + 1, h);
+      for (let j = 0; j < 7; j++) { const x = i * bw + rng() * bw, a = 0.04 + 0.05 * rng(); g.fillStyle = rng() < 0.5 ? `rgba(120,80,40,${a})` : `rgba(255,240,215,${a})`; g.fillRect(x, 0, 0.6 + rng() * 1.2, h); }
+      g.fillStyle = `rgba(70,45,25,${seam || 0.55})`; g.fillRect(i * bw, 0, 1, h);
+    }
+    for (let j = 0; j < 40; j++) { g.fillStyle = `rgba(110,75,40,${0.03 + 0.03 * rng()})`; g.fillRect(0, rng() * h, w, 1 + rng() * 2); }
+  });
+}
+function addFlat(group, geo, mat, x, s, y) { const m = new THREE.Mesh(geo, mat); m.rotation.x = -Math.PI / 2; m.position.set(x, y || 0, -s); group.add(m); return m; }
+function pinProfile() {
+  const P = [[0, 0], [1.0155, 0], [1.30, 0.15], [1.62, 0.6], [1.92, 1.5], [2.19, 2.7], [2.36, 3.8], [2.383, 4.5], [2.35, 5.3], [2.20, 6.4], [1.93, 7.5], [1.52, 8.5],
+    [1.12, 9.3], [0.93, 9.9], [0.90, 10.2], [0.94, 10.9], [1.08, 11.8], [1.22, 12.7], [1.275, 13.5], [1.24, 14.0], [1.10, 14.45], [0.80, 14.8], [0.40, 14.97], [0, 15.0]];
+  return P.map(([r, h]) => new THREE.Vector2(r * IN, h * IN));
+}
+function profileR(hIn) { const P = pinProfile(); const h = hIn * IN; for (let i = 0; i < P.length - 1; i++) if (h >= P[i].y && h <= P[i + 1].y && P[i + 1].y > P[i].y) return P[i].x + (h - P[i].y) / (P[i + 1].y - P[i].y) * (P[i + 1].x - P[i].x); return 0; }
+function makePinMesh(dim) {
+  const g = new THREE.Group();
+  if (!W.pinGeo) {
+    W.pinGeo = new THREE.LatheGeometry(pinProfile(), 28);
+    W.pinMat = new THREE.MeshPhongMaterial({ color: 0xf4f2ec, shininess: 90, specular: 0x555555 });
+    const band = (h0, h1) => { const pts = []; for (let i = 0; i <= 4; i++) { const h = h0 + (h1 - h0) * i / 4; pts.push(new THREE.Vector2(profileR(h) + 0.0006, h * IN)); } return new THREE.LatheGeometry(pts, 28); };
+    W.bandGeos = [band(9.15, 9.6), band(10.35, 10.8)];
+    W.bandMat = new THREE.MeshPhongMaterial({ color: 0xc8202a, shininess: 60, side: THREE.DoubleSide });
+    W.pinMatDim = new THREE.MeshPhongMaterial({ color: 0xbdbab3, shininess: 40 }); W.bandMatDim = new THREE.MeshPhongMaterial({ color: 0x902028, side: THREE.DoubleSide });
+  }
+  g.add(new THREE.Mesh(W.pinGeo, dim ? W.pinMatDim : W.pinMat));
+  for (const b of W.bandGeos) g.add(new THREE.Mesh(b, dim ? W.bandMatDim : W.bandMat));
+  return g;
+}
+function buildLaneSet(root, cx, main) {
+  const L = DIM, grp = new THREE.Group(); grp.position.x = cx; root.add(grp);
+  const laneLenToDeck = L.deckStart;
+  const laneMat = main ? W.laneMat : W.laneMatDim;
+  const lane = addFlat(grp, new THREE.PlaneGeometry(L.laneW, laneLenToDeck), laneMat, 0, laneLenToDeck / 2);
+  lane.material.map.repeat.set(1, laneLenToDeck / 3);
+  addFlat(grp, new THREE.PlaneGeometry(L.laneW, L.deckEnd - L.deckStart), main ? W.deckMat : W.deckMatDim, 0, (L.deckStart + L.deckEnd) / 2);
+  const c = L.gutterW, h = L.gutterD, R = (c * c / 4 + h * h) / (2 * h), th = Math.asin(c / 2 / R), glen = L.deckEnd + 0.25;
+  const gg = new THREE.CylinderGeometry(R, R, glen, 20, 1, true, -th, 2 * th);
+  for (const sgn of [-1, 1]) {
+    const m = new THREE.Mesh(gg, W.gutterMat); m.rotation.x = Math.PI / 2; m.position.set(sgn * (L.laneW / 2 + c / 2), R - h, -glen / 2); grp.add(m);
+  }
+  for (const sgn of [-1, 1]) {
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, L.deckStart - 0.3), W.capMat); cap.position.set(sgn * (L.laneW / 2 + c + 0.025), 0.01, -(L.deckStart - 0.3) / 2); grp.add(cap);
+    const kb = new THREE.Mesh(new THREE.BoxGeometry(0.06, L.kickH, 3.0), W.kickMat); kb.position.set(sgn * (L.kickback / 2 + 0.03), L.kickH / 2 - 0.05, -(L.deckStart - 0.3 + 1.5)); grp.add(kb);
+  }
+  const pit = new THREE.Mesh(new THREE.BoxGeometry(L.kickback, 0.02, 1.4), W.pitMat); pit.position.set(0, -L.pitDrop, -(L.deckEnd + 0.7)); grp.add(pit);
+  const cu = new THREE.Mesh(new THREE.PlaneGeometry(L.kickback, 1.2), W.cushionMat); cu.position.set(0, 0.35, -(L.deckEnd + L.cushion + 0.1)); grp.add(cu);
+  const mk = (geo, x, s) => addFlat(grp, geo, main ? W.markMat : W.markMatDim, x, s, 0.0015);
+  mk(new THREE.PlaneGeometry(L.laneW + 2 * L.gutterW, 1 * IN), 0, -0.5 * IN);
+  const dotA = new THREE.CircleGeometry(0.5 * IN, 16), dotL = new THREE.CircleGeometry(0.375 * IN, 14);
+  for (const sft of [12, 15]) for (const b of [5, 10, 15, 20, 25, 30, 35]) mk(dotA, boardX(b), -sft * FT);
+  for (const b of [3, 5, 8, 11, 14]) { mk(dotL, boardX(b), 7 * FT); mk(dotL, boardX(40 - b), 7 * FT); }
+  const ash = new THREE.Shape(); const aw = 1.25 * IN, al = 6 * IN;
+  ash.moveTo(-aw / 2, 0); ash.lineTo(aw / 2, 0); ash.lineTo(0, al); ash.lineTo(-aw / 2, 0);
+  const ageo = new THREE.ShapeGeometry(ash);
+  for (const b of [5, 10, 15, 20, 25, 30, 35]) { const lvl = 3 - Math.abs(b - 20) / 5; const tip = (12 + lvl * 4 / 3) * FT; mk(ageo, boardX(b), tip - al); }
+  const rf = new THREE.PlaneGeometry(DIM.board * 0.85, 3 * FT);
+  for (const [b, s0] of [[10, 34], [30, 34], [15, 40], [25, 40]]) mk(rf, boardX(b), (s0 + 1.5) * FT);
+  if (!main) for (const [, x, s] of PIN_SPOTS) { const p = makePinMesh(true); p.position.set(x, 0, -s); grp.add(p); }
+  return grp;
+}
+function buildWorld(canvas) {
+  const r = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+  r.outputEncoding = THREE.sRGBEncoding; r.setClearColor(0x07080a, 1); W.renderer = r; W.aniso = Math.min(8, r.capabilities.getMaxAnisotropy());
+  const scene = new THREE.Scene(); W.scene = scene;
+  const cam = new THREE.PerspectiveCamera(66, 1, 0.3, 90); cam.rotation.order = "YXZ"; cam.position.set(0, DIM.eyeH, -DIM.eyeS); W.camera = cam;
+  scene.add(new THREE.HemisphereLight(0xcfd6e6, 0x2a2018, 0.55));
+  const key = new THREE.DirectionalLight(0xfff4e2, 0.55); key.position.set(-1.5, 6, 8); scene.add(key);
+  for (const s of [-3, 3, 9, 15]) { const pl = new THREE.PointLight(0xfff1dc, 0.55, 9, 2); pl.position.set(0.25, 2.8, -s); scene.add(pl); }
+  const pinL = new THREE.PointLight(0xffffff, 2.2, 4.5, 2); pinL.position.set(0, 1.0, -(DIM.headS + 0.15)); scene.add(pinL);
+  const pinL2 = new THREE.PointLight(0xffffff, 1.0, 4, 2); pinL2.position.set(0, 0.7, -(DIM.headS - 0.9)); scene.add(pinL2);
+  const laneTex = boardTex(7, [222, 190, 142], 39, 512, 1024); laneTex.wrapT = THREE.RepeatWrapping; laneTex.wrapS = THREE.ClampToEdgeWrapping;
+  const laneTex2 = laneTex.clone(); laneTex2.needsUpdate = true;
+  W.laneMat = new THREE.MeshPhongMaterial({ map: laneTex, shininess: 70, specular: 0x3a3a3a });
+  W.laneMatDim = new THREE.MeshPhongMaterial({ map: laneTex2, color: 0x8a8a8a, shininess: 50, specular: 0x222222 });
+  const apTex = boardTex(11, [190, 160, 120], 39, 512, 512, 0.22); apTex.wrapS = apTex.wrapT = THREE.RepeatWrapping;
+  W.deckMat = new THREE.MeshPhongMaterial({ color: 0xb08a5c, shininess: 40, specular: 0x222222 }); W.deckMatDim = new THREE.MeshPhongMaterial({ color: 0x6e5a42 });
+  W.gutterMat = new THREE.MeshPhongMaterial({ color: 0x3b3f46, shininess: 30, side: THREE.DoubleSide });
+  W.capMat = new THREE.MeshPhongMaterial({ color: 0x1d1f24 }); W.kickMat = new THREE.MeshPhongMaterial({ color: 0x2a2622, shininess: 20 });
+  W.pitMat = new THREE.MeshBasicMaterial({ color: 0x050506 }); W.cushionMat = new THREE.MeshBasicMaterial({ color: 0x0b0b0d, side: THREE.DoubleSide });
+  const mkm = (c) => new THREE.MeshBasicMaterial({ color: c, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  W.markMat = mkm(0x3a2416); W.markMatDim = mkm(0x241810);
+  const LANES = [-3, -2, -1, 0, 1, 2, 3], PITCH = DIM.laneW + 2 * DIM.gutterW + 0.10;
+  const apW = PITCH * 7 + 0.6, apL = 7.5;
+  const ap = addFlat(scene, new THREE.PlaneGeometry(apW, apL), new THREE.MeshPhongMaterial({ map: apTex, shininess: 50, specular: 0x2a2a2a }), 0, -apL / 2 + 0.0001, -0.0005);
+  apTex.repeat.set(apW / DIM.laneW, apL / 3.5);
+  for (const k of LANES) buildLaneSet(scene, k * PITCH, k === 0);
+  addFlat(scene, new THREE.PlaneGeometry(apW, DIM.deckEnd + 1.5), new THREE.MeshPhongMaterial({ color: 0x15161a }), 0, (DIM.deckEnd + 1.5) / 2, -0.06);
+  const mask = new THREE.Mesh(new THREE.BoxGeometry(apW, 1.6, 0.4), new THREE.MeshPhongMaterial({ color: 0x1a2234, shininess: 10 }));
+  mask.position.set(0, 0.80 + 0.8, -(DIM.headS - 0.55)); scene.add(mask);
+  const stripe = new THREE.Mesh(new THREE.PlaneGeometry(apW, 0.035), new THREE.MeshBasicMaterial({ color: 0x3d5a8c })); stripe.position.set(0, 0.86, -(DIM.headS - 0.55) + 0.201); scene.add(stripe);
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(apW + 4, 4), new THREE.MeshBasicMaterial({ color: 0x08090b })); back.position.set(0, 1.0, -(DIM.deckEnd + 2.2)); scene.add(back);
+  for (const k of [-0.5, 1.5]) {
+    const br = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.62, 1.0), new THREE.MeshPhongMaterial({ color: 0x23272f, shininess: 30 })); br.position.set(k * PITCH, 0.31, -(DIM.startS - 0.75)); scene.add(br);
+  }
+  const ballTex = canvasTex(512, 256, (g, w, h) => {
+    const grd = g.createLinearGradient(0, 0, w, h); grd.addColorStop(0, "#1d3f8a"); grd.addColorStop(0.5, "#3a1f6e"); grd.addColorStop(1, "#173a78"); g.fillStyle = grd; g.fillRect(0, 0, w, h);
+    const rng = mulberry(3); for (let i = 0; i < 60; i++) { g.fillStyle = `rgba(160,190,255,${0.05 + 0.08 * rng()})`; g.beginPath(); g.ellipse(rng() * w, rng() * h, 10 + 40 * rng(), 4 + 10 * rng(), rng() * 3, 0, 7); g.fill(); }
+    g.fillStyle = "#e9e3d2"; g.fillRect(w * 0.25 - 9, 0, 18, h); g.fillRect(w * 0.75 - 9, 0, 18, h);
+    g.fillStyle = "#f2b544"; g.beginPath(); g.arc(w * 0.5, h * 0.5, 26, 0, 7); g.fill(); g.fillStyle = "#1a1408"; g.font = "bold 22px sans-serif"; g.textAlign = "center"; g.fillText("RC", w * 0.5, h * 0.5 + 8);
+  });
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(DIM.ballR, 48, 32), new THREE.MeshPhongMaterial({ map: ballTex, shininess: 110, specular: 0x666666 }));
+  ball.quaternion.setFromEuler(new THREE.Euler(0.4, 0.9, 0.3)); scene.add(ball); W.ball = ball;
+  const shTex = canvasTex(64, 64, (g) => { const gr = g.createRadialGradient(32, 32, 2, 32, 32, 32); gr.addColorStop(0, "rgba(0,0,0,.55)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); });
+  W.shadow = new THREE.Mesh(new THREE.PlaneGeometry(0.30, 0.30), new THREE.MeshBasicMaterial({ map: shTex, transparent: true, depthWrite: false }));
+  W.shadow.rotation.x = -Math.PI / 2; scene.add(W.shadow);
+  W.pins = PIN_SPOTS.map(() => { const outer = new THREE.Group(), m = makePinMesh(false); m.position.y = -DIM.pinCG; outer.add(m); scene.add(outer); return outer; });
+  return W;
+}
+const CAM = { pitch: -30, vfov: 66, zoomPxDeg: 0.0298 };
+function elevAz(x, y, s) { const dz = s - DIM.eyeS, dy = y - DIM.eyeH; return [Math.atan2(dy, Math.hypot(dz, x)) * 180 / Math.PI, Math.atan2(x, dz) * 180 / Math.PI]; }
+function setCamera(mode, viewHcss, ball, dt) {
+  const cam = W.camera;
+  if (mode !== "zoom") { cam.fov = CAM.vfov; cam.rotation.set(CAM.pitch * Math.PI / 180, 0, 0); W.zoomState = null; }
+  else {
+    const V = viewHcss * CAM.zoomPxDeg, m = 0.14 * V;
+    const [eb, ab] = elevAz(ball.x, DIM.ballR, ball.s), [ep, ap] = elevAz(0, 0.2, DIM.headS + 0.4);
+    let pitch, yaw;
+    if (ep - eb <= V - 2 * m) { pitch = 0.5 * (eb + ep); yaw = 0.5 * (ab + ap); } else { pitch = eb + V / 2 - m; yaw = ab; }
+    const z = W.zoomState || (W.zoomState = { pitch, yaw }), k = dt ? 1 - Math.exp(-dt / 0.12) : 1;
+    z.pitch += (pitch - z.pitch) * k; z.yaw += (yaw - z.yaw) * k;
+    cam.fov = V; cam.rotation.set(z.pitch * Math.PI / 180, -z.yaw * Math.PI / 180, 0);
+  }
+  cam.updateProjectionMatrix(); cam.updateMatrixWorld(true);
+}
+const PHYS_PAR = {
+  hz: 240, iters: 20,
+  pinPin: { friction: 0.12, restitution: DIM.pinCOR },
+  ballPin: { friction: 0.30, restitution: DIM.pinCOR },
+  pinDeck: { friction: 0.40, restitution: 0.35 },
+  ballDeck: { friction: 0.20, restitution: 0.10 },
+  wall: { friction: 0.20, restitution: 0.45 },
+  pit: { friction: 0.50, restitution: 0.10 },
+  pinAxialI: 0.0016,
+};
+const PIN_SPHERES = [[2.6, 2.10], [4.5, 2.383], [6.3, 2.20], [8.0, 1.62], [10.0, 0.95], [12.0, 1.15], [13.6, 1.26]];
+function patchCannonFriction() {
+  const NP = CANNON.Narrowphase.prototype; if (NP.__frictionPatched) return;
+  const orig = NP.createFrictionEquationsFromContact;
+  NP.createFrictionEquationsFromContact = function (c, out) {
+    const made = orig.call(this, c, out);
+    if (made) { const dt = this.world.dt || 1 / PHYS_PAR.hz; for (let i = out.length - 2; i < out.length; i++) { out[i].minForce *= dt; out[i].maxForce *= dt; } }
+    return made;
+  };
+  NP.__frictionPatched = true;
+}
+function makePhys(opts) {
+  patchCannonFriction();
+  opts = opts || {}; const rng = opts.rng || null;
+  const w = new CANNON.World(); w.gravity.set(0, -9.81, 0); w.broadphase = new CANNON.NaiveBroadphase(); w.solver.iterations = PHYS_PAR.iters;
+  w.allowSleep = true; w.quatNormalizeFast = false; w.quatNormalizeSkip = 0;
+  const M = { pin: new CANNON.Material("pin"), ball: new CANNON.Material("ball"), deck: new CANNON.Material("deck"), wall: new CANNON.Material("wall"), pit: new CANNON.Material("pit") };
+  const cm = (a, b, p) => w.addContactMaterial(new CANNON.ContactMaterial(a, b, { friction: p.friction, restitution: p.restitution }));
+  cm(M.pin, M.pin, PHYS_PAR.pinPin); cm(M.ball, M.pin, PHYS_PAR.ballPin); cm(M.pin, M.deck, PHYS_PAR.pinDeck); cm(M.ball, M.deck, PHYS_PAR.ballDeck);
+  cm(M.pin, M.wall, PHYS_PAR.wall); cm(M.ball, M.wall, PHYS_PAR.wall); cm(M.pin, M.pit, PHYS_PAR.pit); cm(M.ball, M.pit, PHYS_PAR.pit);
+  const box = (hx, hy, hz, x, y, s, mat) => { const b = new CANNON.Body({ mass: 0, material: mat }); b.addShape(new CANNON.Box(new CANNON.Vec3(hx, hy, hz))); b.position.set(x, y, -s); w.addBody(b); return b; };
+  const s0 = DIM.headS - 1.2, s1 = DIM.deckEnd, hw = DIM.laneW / 2, kb = DIM.kickback / 2;
+  box(hw, 0.1, (s1 - s0) / 2, 0, -0.1, (s0 + s1) / 2, M.deck);
+  for (const sg of [-1, 1]) box((kb - hw) / 2, 0.1, (s1 - s0) / 2, sg * (hw + kb) / 2, -0.1 - DIM.gutterD, (s0 + s1) / 2, M.deck);
+  for (const sg of [-1, 1]) box(0.03, 0.5, 2.0, sg * (kb + 0.03), 0.25, s0 + 2.0, M.wall);
+  box(kb, 0.1, 0.9, 0, -DIM.pitDrop - 0.1, s1 + 0.9, M.pit);
+  box(kb, 0.6, 0.05, 0, 0.2, s1 + DIM.cushion + 0.15, M.pit);
+  const pins = PIN_SPOTS.map(([n, x, s]) => {
+    const b = new CANNON.Body({ mass: DIM.pinMass, material: M.pin }); const cg = DIM.pinCG;
+    for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; b.addShape(new CANNON.Sphere(0.30 * IN), new CANNON.Vec3(0.70 * IN * Math.cos(a), 0.30 * IN - cg, 0.70 * IN * Math.sin(a))); }
+    for (const [h, r] of PIN_SPHERES) b.addShape(new CANNON.Sphere(r * IN), new CANNON.Vec3(0, h * IN - cg, 0));
+    const It = DIM.pinMass * DIM.pinRG2; b.inertia.set(It, PHYS_PAR.pinAxialI, It); b.invInertia.set(1 / It, 1 / PHYS_PAR.pinAxialI, 1 / It); b.updateInertiaWorld(true);
+    b.linearDamping = 0.01; b.angularDamping = 0.02; b.sleepSpeedLimit = 0.05; b.sleepTimeLimit = 0.4;
+    b.pinNo = n; b.spot = [x, s]; w.addBody(b); return b;
+  });
+  const ball = new CANNON.Body({ mass: DIM.ballM, material: M.ball }); ball.addShape(new CANNON.Sphere(DIM.ballR));
+  const Ib = DIM.ballM * DIM.ballRG * DIM.ballRG; ball.inertia.set(Ib, Ib, Ib); ball.invInertia.set(1 / Ib, 1 / Ib, 1 / Ib); ball.updateInertiaWorld(true);
+  ball.linearDamping = 0.0; ball.angularDamping = 0.0; ball.sleepSpeedLimit = 0.05; w.addBody(ball); ball.position.set(0, -5, 10); ball.type = CANNON.Body.STATIC; ball.mass = 0;
+  const P = { w, pins, ball, M, rng, inPlay: pins.map(() => true), t: 0 };
+  P.placePin = (i) => {
+    const b = pins[i]; let [x, s] = b.spot; let rot = 0;
+    if (rng) { x += 0.001 * gauss(rng); s += 0.001 * gauss(rng); rot = 2 * Math.PI * rng(); }
+    b.position.set(x, DIM.pinCG + 0.0002, -s); b.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), rot);
+    b.velocity.set(0, 0, 0); b.angularVelocity.set(0, 0, 0); b.force.set(0, 0, 0); b.torque.set(0, 0, 0); b.sleep();
+  };
+  P.resetAll = () => { pins.forEach((b, i) => { if (!P.inPlay[i]) { w.addBody(b); P.inPlay[i] = true; } P.placePin(i); }); P.parkBall(); };
+  P.parkBall = () => { ball.type = CANNON.Body.STATIC; ball.mass = 0; ball.invMass = 0; ball.position.set(0, -5, 10); ball.velocity.set(0, 0, 0); ball.angularVelocity.set(0, 0, 0); };
+  P.launch = (x, s, vxw, vzw) => {
+    ball.type = CANNON.Body.DYNAMIC; ball.mass = DIM.ballM; ball.invMass = 1 / DIM.ballM; ball.updateInertiaWorld(true);
+    ball.position.set(x, DIM.ballR + 0.0005, -s); ball.velocity.set(vxw, 0, vzw); ball.angularVelocity.set(vzw / DIM.ballR, 0, -vxw / DIM.ballR); ball.wakeUp();
+    pins.forEach((b, i) => { if (P.inPlay[i]) b.wakeUp(); }); P.t = 0;
+  };
+  P.step = (n) => { for (let i = 0; i < n; i++) { w.step(1 / PHYS_PAR.hz); P.t += 1 / PHYS_PAR.hz; } };
+  P.pinDown = (i) => {
+    const b = pins[i]; if (!P.inPlay[i]) return true;
+    const up = b.quaternion.vmult(new CANNON.Vec3(0, 1, 0)); const tilt = Math.acos(clamp(up.y, -1, 1)) * 180 / Math.PI;
+    const s = -b.position.z, x = b.position.x;
+    return tilt > 30 || b.position.y < 0.09 || s > DIM.deckEnd || s < DIM.headS - 1.1 || Math.abs(x) > DIM.laneW / 2 + 0.01;
+  };
+  P.countDown = () => pins.reduce((n, b, i) => n + (P.inPlay[i] && P.pinDown(i) ? 1 : 0), 0);
+  P.atRest = () => {
+    const quiet = (b) => b.sleepState === CANNON.Body.SLEEPING || (b.velocity.norm() < 0.03 && b.angularVelocity.norm() < 0.2);
+    return pins.every((b, i) => !P.inPlay[i] || quiet(b)) && (ball.type === CANNON.Body.STATIC || quiet(ball) || -ball.position.z > DIM.deckEnd + 0.2);
+  };
+  P.clearDeadwood = () => { const down = []; pins.forEach((b, i) => { if (P.inPlay[i] && P.pinDown(i)) down.push(i); });
+    down.forEach(i => { w.remove ? w.remove(pins[i]) : w.removeBody(pins[i]); P.inPlay[i] = false; });
+    pins.forEach((b, i) => { if (P.inPlay[i]) P.placePin(i); }); P.parkBall(); };
+  P.resetAll();
+  return P;
+}
+function pinTest(offIn, v, angDeg, seed, T) {
+  const rng = mulberry(1000 + (seed | 0)), P = makePhys({ rng }); const a = angDeg * Math.PI / 180, d = 0.3;
+  const x = offIn * IN + Math.tan(a) * d, s = DIM.headS - d;
+  P.launch(x, s, -v * Math.sin(a), -v * Math.cos(a));
+  const steps = Math.round((T || 5) * PHYS_PAR.hz); let k = 0;
+  let vExit = null;
+  for (; k < steps; k += 4) { P.step(4); if (vExit == null && -P.ball.position.z >= DIM.deckEnd) vExit = P.ball.velocity.norm(); if (k % 24 === 0 && P.t > 1.0 && P.atRest()) break; }
+  const down = P.countDown(); return { down, strike: down === 10, t: P.t, vExit };
+}
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+};
+const DEFAULTS = { scheme: "A", curve: "on", sensing: "ideal", view: "whole", board: 20, nudge: 0.30, marker: "on" };
+const S = Object.assign({}, DEFAULTS, store.get("rcbowl.settings", {}));
+const saveSettings = () => store.set("rcbowl.settings", S);
+const CTL = { mode: "strip", heading: 0, lastRaw: null, ref: 0, strip: 0, askedAt: 0, got: false, gotAt: 0, perm: null,
+  stickId: null, defl: 0, theta: 0, bx: 0, by: 0 };
+function psiC() { return CTL.mode === "motion" ? wrap180(CTL.heading - CTL.ref) : CTL.strip; }
+function headingOf(a, b, g) {
+  const d = Math.PI / 180, cA = Math.cos(a * d), sA = Math.sin(a * d), cB = Math.cos(b * d), sB = Math.sin(b * d), cG = Math.cos(g * d), sG = Math.sin(g * d);
+  const tx = -cB * sA, ty = cA * cB, tz = sB;
+  const bx = -(cG * sA * sB + cA * sG), by = -(sA * sG - cA * cG * sB);
+  const elev = Math.abs(Math.asin(clamp(tz, -1, 1)) * 180 / Math.PI), wB = smooth(60, 80, elev);
+  const nt = Math.hypot(tx, ty) || 1e-9, nb = Math.hypot(bx, by) || 1e-9;
+  const vx = (1 - wB) * tx / nt + wB * bx / nb, vy = (1 - wB) * ty / nt + wB * by / nb;
+  return Math.atan2(vx, vy) * 180 / Math.PI;
+}
+function onOri(e) {
+  if (e.alpha == null || e.beta == null || e.gamma == null) return;
+  const h = headingOf(e.alpha, e.beta, e.gamma);
+  if (CTL.lastRaw == null) { CTL.heading = h; } else CTL.heading += wrap180(h - CTL.lastRaw);
+  CTL.lastRaw = h; CTL.gotAt = performance.now();
+  if (!CTL.got) { CTL.got = true; CTL.ref = CTL.heading; setMode("motion"); }
+}
+let oriListening = false;
+function listenMotion() {
+  if (!oriListening) { window.addEventListener("deviceorientation", onOri); oriListening = true; }
+  CTL.askedAt = performance.now();
+  setTimeout(() => { if (!CTL.got) setMode("strip"); }, 1550);
+}
+function askMotion() {
+  const DOE = window.DeviceOrientationEvent;
+  if (DOE && typeof DOE.requestPermission === "function" && CTL.perm !== "granted") {
+    try {
+      DOE.requestPermission().then((st) => { CTL.perm = st; if (st === "granted") { $("prompt").hidden = true; listenMotion(); } else { $("prompt").hidden = true; setMode("strip"); } })
+        .catch(() => { CTL.perm = "denied"; $("prompt").hidden = true; setMode("strip"); });
+    } catch (e) { setMode("strip"); }
+  } else if (!CTL.got) listenMotion();
+}
+function setMode(m) { CTL.mode = m; $("strip").hidden = m !== "strip"; $("src").textContent = m === "motion" ? "Motion" : "Strip"; $("hSrc").textContent = "· " + (m === "motion" ? "Motion" : "Strip"); drawStrip(); }
+function recenter() {
+  askMotion();
+  if (CTL.mode === "motion") CTL.ref = CTL.heading; else CTL.strip = 0;
+  if (G.phase === "ready" || (G.phase === "rolling" && speed() < 0.02)) G.line = null;
+  drawStrip(); updateHud(true);
+}
+const STRIP_PX = 12; let stripDrag = null;
+function drawStrip() {
+  const c = $("stripTicks"), el = $("strip"); if (el.hidden) return; const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const w = el.clientWidth, h = el.clientHeight; if (!w) return; if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+  const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+  const cs = getComputedStyle(document.documentElement); g.strokeStyle = cs.getPropertyValue("--strip-tick").trim() || "#3a404c"; g.lineWidth = 1;
+  const off = -CTL.strip * STRIP_PX, x0 = w / 2 + off;
+  for (let d = -180; d <= 180; d++) { const x = x0 + d * STRIP_PX; if (x < -2 || x > w + 2) continue; const big = d % 5 === 0; g.beginPath(); g.moveTo(x + 0.5, big ? 4 : 10); g.lineTo(x + 0.5, h - (big ? 4 : 10)); g.stroke(); }
+  g.fillStyle = cs.getPropertyValue("--accent").trim() || "#f2b544"; g.fillRect(w / 2 - 1, 0, 2, h);
+}
+function bindStrip() {
+  const el = $("strip");
+  el.addEventListener("pointerdown", (e) => { if (stripDrag) return; stripDrag = { id: e.pointerId, x: e.clientX, v: CTL.strip }; try { el.setPointerCapture(e.pointerId); } catch (_) {} e.preventDefault(); });
+  el.addEventListener("pointermove", (e) => { if (!stripDrag || e.pointerId !== stripDrag.id) return; CTL.strip = clamp(stripDrag.v + (e.clientX - stripDrag.x) / STRIP_PX, -179, 179); drawStrip(); });
+  const up = (e) => { if (stripDrag && e.pointerId === stripDrag.id) stripDrag = null; };
+  el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") { if (CTL.mode !== "strip") return; CTL.strip = clamp(CTL.strip + (e.key === "ArrowRight" ? 1 : -1), -179, 179); drawStrip(); e.preventDefault(); }
+  });
+}
+const RING_R = 56, DEAD = 0.08;
+function bindStick() {
+  const zone = $("zone"), ring = $("ring"), knob = $("knob");
+  const setKnob = (dx, dy) => { knob.style.transform = `translate(${dx}px,${dy}px)`; };
+  zone.addEventListener("pointerdown", (e) => {
+    if (CTL.stickId != null) return;
+    const r = zone.getBoundingClientRect(); CTL.stickId = e.pointerId; try { zone.setPointerCapture(e.pointerId); } catch (_) {}
+    const mx = RING_R + 24;
+    CTL.bx = clamp(e.clientX - r.left, Math.min(mx, r.width / 2), Math.max(r.width - mx, r.width / 2));
+    CTL.by = clamp(e.clientY - r.top, Math.min(RING_R, r.height / 2), Math.max(r.height - RING_R, r.height / 2));
+    ring.style.left = CTL.bx + "px"; ring.style.top = CTL.by + "px"; ring.classList.add("on"); knob.classList.remove("home");
+    $("zoneHint").hidden = true; moveStick(e.clientX - r.left, e.clientY - r.top); e.preventDefault(); wake();
+  });
+  const moveStick = (px, py) => {
+    let dx = px - CTL.bx, dy = py - CTL.by; const d = Math.hypot(dx, dy);
+    if (d > RING_R) { dx *= RING_R / d; dy *= RING_R / d; }
+    setKnob(dx, dy); const m = Math.min(1, d / RING_R);
+    CTL.defl = m <= DEAD ? 0 : (m - DEAD) / (1 - DEAD); CTL.theta = Math.atan2(dx, -dy) * 180 / Math.PI;
+  };
+  zone.addEventListener("pointermove", (e) => { if (e.pointerId !== CTL.stickId) return; const r = zone.getBoundingClientRect(); moveStick(e.clientX - r.left, e.clientY - r.top); });
+  const end = (e) => { if (e.pointerId !== CTL.stickId) return; CTL.stickId = null; CTL.defl = 0; knob.classList.add("home"); setKnob(0, 0); ring.classList.remove("on"); };
+  zone.addEventListener("pointerup", end); zone.addEventListener("pointercancel", end); zone.addEventListener("lostpointercapture", end);
+  for (const el of [$("panel"), $("cv"), $("view")]) el.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
+  document.addEventListener("dblclick", (e) => e.preventDefault()); document.addEventListener("gesturestart", (e) => e.preventDefault());
+  document.addEventListener("contextmenu", (e) => { if (!e.target.closest("textarea")) e.preventDefault(); });
+}
+let wakeLock = null;
+function wake() { if (wakeLock || !navigator.wakeLock) return; try { navigator.wakeLock.request("screen").then((l) => { wakeLock = l; l.addEventListener && l.addEventListener("release", () => { wakeLock = null; }); }).catch(() => {}); } catch (e) {} }
+const G = { phase: "ready", ballNo: 1, pins1: 0, pins2: 0, p: null, prev: null, t: 0, tPush: null, line: null, err: null, rng: mulberry(Date.now() & 0xffff),
+  stillT: 0, gut: null, entry: null, log: null, lastSample: -1, res: null, frameDone: false, physT: 0 };
+const speed = () => G.p ? Math.hypot(G.p.vx, G.p.vy) : 0;
+const ballS = (p) => p.x - PL.APPROACH;
+function newBall() {
+  G.p = makePlant(0, boardX(S.board)); G.prev = { x: G.p.x, y: G.p.y }; G.phase = "ready"; G.t = 0; G.tPush = null; G.line = null; G.stillT = 0; G.gut = null; G.entry = null; G.physT = 0;
+  const r = G.rng; G.err = { near: 3.5 * gauss(r), far: 1.78 * gauss(r), ou: 1.6 * gauss(r) };
+  G.log = { id: Date.now().toString(36) + Math.floor(G.rng() * 1e4).toString(36), time: new Date().toISOString(), ball: G.ballNo,
+    set: { scheme: S.scheme, curve: S.curve, sensing: S.sensing, view: S.view, board: S.board, nudge: S.nudge }, cols: ["t", "x", "y", "vx", "vy", "psi_c", "stick_deg", "stick_defl"], series: [] };
+  G.lastSample = -1; $("resetBall").hidden = true; $("card").hidden = true;
+  W.ball.visible = true; placeBallMesh(G.p.x, G.p.y, 0, true);
+}
+function newFrame() { G.ballNo = 1; G.pins1 = 0; G.pins2 = 0; G.frameDone = false; PH.resetAll(); newBall(); updateHud(true); }
+function sensErr(dt) {
+  if (S.sensing !== "designed") return 0;
+  const d = Math.hypot(G.p.x + DIM.eyeBack, G.p.y), w = clamp((d - 3.5) / 1.0, 0, 1), rho = Math.exp(-dt / 0.53);
+  G.err.ou = rho * G.err.ou + Math.sqrt(1 - rho * rho) * 1.6 * gauss(G.rng);
+  return (1 - w) * G.err.near + w * G.err.far + G.err.ou;
+}
+function plantTick() {
+  const DT = PL.DT, p = G.p, s = ballS(p); G.t += DT;
+  if (window.__testTick) { try { window.__testTick(s); } catch (e) {} }
+  const psi = psiC(), designed = S.sensing === "designed", e = sensErr(DT);
+  let cmd;
+  if (S.scheme === "B") {
+    if (!G.line && CTL.defl > 0 && speed() < 0.02) G.line = { dir: psi + e };
+    const fwd = CTL.defl * Math.cos(CTL.theta * Math.PI / 180), side = CTL.defl * Math.sin(CTL.theta * Math.PI / 180);
+    cmd = { law: "line", dir: G.line ? G.line.dir : psi, stick: G.line ? CTL.defl : 0, lineFwd: fwd, lineSide: side * S.nudge };
+  } else {
+    const th = S.curve === "on" ? stickCurve(CTL.theta) : CTL.theta;
+    cmd = { law: "travel", dir: psi + e + th, stick: CTL.defl };
+  }
+  cmd.go = !designed || (G.tPush != null && G.t - G.tPush >= 0.41);
+  if (designed) cmd.dvNoise = () => 0.005 * gauss(G.rng);
+  G.prev = { x: p.x, y: p.y };
+  plantStep(p, cmd);
+  const s2 = ballS(p), xa = DIM.laneW / 2 + DIM.gutterW - DIM.ballR;
+  if (s2 < 0) {
+    if (Math.abs(p.y) > xa) { p.y = Math.sign(p.y) * xa; p.vy = 0; p.ay = 0; p.jy = 0; }
+    if (s2 < DIM.startS - 0.55) { p.x = DIM.startS - 0.55 + PL.APPROACH; p.vx = Math.max(p.vx, 0); }
+  } else if (Math.abs(p.y) > DIM.laneW / 2) { startGutter(); return; }
+  if (s2 >= DIM.headS - 0.3) { handOff(); return; }
+  if (Math.round(G.t * 100) % 10 === 0) G.log.series.push([+G.t.toFixed(2), +p.x.toFixed(3), +p.y.toFixed(4), +p.vx.toFixed(3), +p.vy.toFixed(3), +psi.toFixed(1), +CTL.theta.toFixed(1), +CTL.defl.toFixed(2)]);
+  if (speed() < 0.02 && CTL.defl === 0) { G.stillT += DT; if (G.stillT > 4) $("resetBall").hidden = false; } else { G.stillT = 0; $("resetBall").hidden = true; }
+}
+function startGutter() {
+  const p = G.p; G.phase = "gutter"; G.gut = { side: Math.sign(p.y), v: Math.max(0.3, Math.hypot(p.vx, p.vy)), s: ballS(p), x: p.y, t: 0 };
+  G.entry = { gutter: true, v: G.gut.v };
+}
+function gutterTick(dt) {
+  const g = G.gut; g.t += dt; g.s += g.v * dt; const xc = g.side * (DIM.laneW / 2 + DIM.gutterW / 2); g.x += (xc - g.x) * Math.min(1, dt / 0.08);
+  const y = g.s > DIM.deckEnd ? Math.max(-DIM.pitDrop + DIM.ballR, 0.060 - (g.s - DIM.deckEnd) * 1.5) : 0.060;
+  placeBallMesh(g.s + PL.APPROACH, g.x, y - DIM.ballR, false);
+  if (g.s > DIM.deckEnd + 0.6) finishBall(0);
+}
+function handOff() {
+  const p = G.p, s = ballS(p), d = DIM.headS - s, x = p.y + p.vy / p.vx * d, hd = Math.atan2(p.vy, p.vx) * 180 / Math.PI;
+  const off = x / IN, phi = Math.abs(x) < 1e-6 ? Math.abs(hd) : -Math.sign(x) * hd, v = Math.hypot(p.vx, p.vy);
+  G.entry = { off, boards: x / DIM.board, phi, heading: hd, v, chart: CHART.chart(Math.abs(off), Math.max(phi, 0)) };
+  G.phase = "pins"; G.physT = 0;
+  const q = W.ball.quaternion; PH.ball.quaternion.set(q.x, q.y, q.z, q.w);
+  PH.launch(p.y, s, p.vy, -p.vx);
+}
+function pinsTick(dt) {
+  if (dt <= 0) return;
+  const n = Math.max(1, Math.min(120, Math.round(dt * PHYS_PAR.hz))); PH.step(n); G.physT += n / PHYS_PAR.hz;
+  if (window.__testPhys) { try { window.__testPhys(G.physT); } catch (e) {} }
+  if ((G.physT > 1.2 && PH.atRest()) || G.physT >= 5) {
+    finishBall(PH.countDown());
+  }
+}
+function finishBall(downNow) {
+  if (G.phase === "result") return;
+  const prevDown = G.ballNo === 1 ? 0 : G.pins1; const pins = G.entry && G.entry.gutter ? 0 : Math.max(0, downNow);
+  if (G.ballNo === 1) G.pins1 = pins; else G.pins2 = pins;
+  G.phase = "result"; $("resetBall").hidden = true;
+  const total = G.pins1 + G.pins2; G.frameDone = G.ballNo === 2 || G.pins1 === 10;
+  const e = G.entry || {}; const res = { pins, ball: G.ballNo, gutter: !!e.gutter, reset: !!e.reset, off_in: e.off, boards: e.boards, entry_deg: e.phi, v: e.v, chart: e.chart, frame: G.frameDone ? total : null };
+  G.res = res; G.log.result = res; saveShot(G.log); showCard(res, prevDown);
+}
+function resetBall() { if (G.phase !== "rolling" && G.phase !== "ready") return; G.entry = { reset: true }; finishBall(0); }
+function nextBall() {
+  if (G.frameDone) { newFrame(); return; }
+  PH.clearDeadwood(); G.ballNo = 2; newBall(); updateHud(true);
+}
+const mph = (v) => v * 2.236936;
+function showCard(r, prevDown) {
+  const c = $("card"); let title, rows = "";
+  const f1 = G.pins1, f2 = G.pins2;
+  if (r.ball === 1 && r.pins === 10) title = "Strike!";
+  else if (r.ball === 2 && f1 + f2 === 10) title = "Spare!";
+  else title = r.gutter ? "Gutter ball" : r.reset ? "Ball reset" : `${r.pins} pin${r.pins === 1 ? "" : "s"}`;
+  const row = (a, b) => `<div class="row"><span>${a}</span><span>${b}</span></div>`;
+  rows += row(`Ball ${r.ball}: pins down`, r.pins);
+  if (!r.gutter && !r.reset && r.off_in != null) {
+    const side = Math.abs(r.off_in) < 0.05 ? "on the head pin's centre" : (r.off_in > 0 ? "right" : "left");
+    rows += row("At the head pin's row", `${Math.abs(r.off_in).toFixed(1)} in (${Math.abs(r.boards).toFixed(1)} boards) ${side}`);
+    rows += row("Entry angle", `${r.entry_deg >= 0 ? "" : "−"}${Math.abs(r.entry_deg).toFixed(1)}°${r.entry_deg < 0 ? " (away from the head pin)" : ""}`);
+    rows += row("Speed at the pins", `${r.v.toFixed(2)} m/s · ${mph(r.v).toFixed(1)} mph`);
+  } else if (r.gutter) rows += row("Speed", `${(r.v || 0).toFixed(2)} m/s`);
+  if (r.ball === 2 || G.frameDone) rows += row("Frame", G.pins1 === 10 ? "X (strike)" : (G.pins1 + G.pins2 === 10 ? `${G.pins1} / (spare)` : `${G.pins1} + ${G.pins2} = ${G.pins1 + G.pins2}`));
+  const chart = (!r.gutter && !r.reset && r.chart != null) ? `<div class="chart">USBC chart: a hit like this strikes <b>${Math.round(r.chart * 100)} %</b><br><span style="color:var(--ink-dim);font-size:11px">${Math.abs(r.off_in).toFixed(1)} in from centre at ${Math.max(0, r.entry_deg).toFixed(1)}° (Stremmel, Entry Angle Fig. 1; no speed term). The pins above are the physics.</span></div>` : "";
+  c.innerHTML = `<h2>${title}</h2>${rows}${chart}<div class="acts"><button class="pill primary" id="nextBtn">${G.frameDone ? "New frame" : "Ball 2"}</button></div>`;
+  c.hidden = false; $("nextBtn").addEventListener("click", nextBall);
+}
+let DB = null;
+function saveShot(rec) {
+  const all = store.get("rcbowl.shots", []); all.push(rec); while (all.length > 60) all.shift(); store.set("rcbowl.shots", all); MEMLOG.push(rec); while (MEMLOG.length > 60) MEMLOG.shift();
+  $("logCount").textContent = `${Math.max(all.length, MEMLOG.length)} balls kept`;
+  if (DB) { try { const r = JSON.stringify(rec).length < 60000 ? rec : Object.assign({}, rec, { series: null }); Promise.resolve(DB.collection("shots").doc(rec.id).set(r)).catch(() => {}); } catch (e) {} }
+}
+const MEMLOG = [];
+function allShots() { const a = store.get("rcbowl.shots", null); return Array.isArray(a) && a.length >= MEMLOG.length ? a : MEMLOG; }
+const _q = new THREE.Quaternion(), _ax = new THREE.Vector3();
+function placeBallMesh(px, py, yLift, snap) {
+  const b = W.ball, nx = py, nz = -(px - PL.APPROACH), ny = DIM.ballR + (yLift || 0);
+  if (!snap) { const dx = nx - b.position.x, dz = nz - b.position.z, d = Math.hypot(dx, dz); if (d > 1e-6 && d < 1) { _ax.set(dz, 0, -dx).normalize(); _q.setFromAxisAngle(_ax, d / DIM.ballR); b.quaternion.premultiply(_q); } }
+  b.position.set(nx, ny, nz); W.shadow.position.set(nx, ny - DIM.ballR + 0.002 + (yLift < -0.01 ? 0 : 0), nz); W.shadow.visible = ny > 0.05;
+}
+function syncPins() {
+  PH.pins.forEach((b, i) => { const m = W.pins[i]; m.visible = PH.inPlay[i]; if (!m.visible) return; m.position.set(b.position.x, b.position.y, b.position.z); m.quaternion.set(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w); });
+}
+function viewSize() { const v = $("view"); return [v.clientWidth, v.clientHeight]; }
+function resize() {
+  const [w, h] = viewSize(); if (!w || !h) return; W.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3)); W.renderer.setSize(w, h, false);
+  W.camera.aspect = w / h; W.camera.updateProjectionMatrix(); drawStrip();
+}
+function ballWorld() { return { x: W.ball.position.x, s: -W.ball.position.z }; }
+let lastHud = 0;
+function updateHud(force) {
+  const now = performance.now(); if (!G.p || (!force && now - lastHud < 70)) return; lastHud = now;
+  let v = 0, s = DIM.startS;
+  if (G.phase === "pins" || (G.phase === "result" && !G.entry?.gutter)) { const b = PH.ball; v = b.type === CANNON.Body.STATIC ? 0 : b.velocity.norm(); s = -b.position.z; }
+  else if (G.phase === "gutter") { v = G.gut.v; s = G.gut.s; } else { v = speed(); s = ballS(G.p); }
+  $("hSpd").textContent = `${v.toFixed(2)} m/s`; $("hMph").textContent = `${mph(v).toFixed(1)} mph`; $("hDist").textContent = `${Math.max(0, DIM.headS - s).toFixed(2)} m`;
+  const psi = psiC(); $("hPsi").textContent = `${psi >= 0 ? "+" : "−"}${Math.abs(psi).toFixed(1)}°`; $("hBall").textContent = `Ball ${G.ballNo}`;
+  const mk = $("marker"); mk.hidden = S.marker !== "on"; mk.style.transform = `rotate(${psi.toFixed(2)}deg)`;
+}
+function bindSettings() {
+  const sheet = $("sheet");
+  const paint = () => {
+    sheet.querySelectorAll(".seg").forEach((seg) => seg.querySelectorAll("button").forEach((b) => b.classList.toggle("on", String(S[seg.dataset.k]) === b.dataset.v)));
+    sheet.querySelectorAll(".num").forEach((n) => { const k = n.dataset.k; n.querySelector("output").textContent = k === "nudge" ? `${(+S[k]).toFixed(2)} m/s` : S[k]; });
+    $("nudgeRow").hidden = S.scheme !== "B"; $("schemeNote").textContent = S.scheme === "B" ? "EXPERIMENTAL: line held; stick sideways slides it" : "Point the phone, push the stick";
+    $("viewBtn").textContent = S.view === "zoom" ? "Whole lane" : "Zoom"; updateHud(true);
+    $("logCount").textContent = `${allShots().length} balls kept`;
+  };
+  sheet.querySelectorAll(".seg").forEach((seg) => seg.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; S[seg.dataset.k] = b.dataset.v; saveSettings(); paint();
+    if (seg.dataset.k === "scheme" && G.phase === "ready") G.line = null; }));
+  sheet.querySelectorAll(".num").forEach((n) => n.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; const k = n.dataset.k, st = +n.dataset.step;
+    S[k] = +clamp(+S[k] + st * +b.dataset.d, +n.dataset.min, +n.dataset.max).toFixed(2); saveSettings(); paint();
+    if (k === "board" && G.phase === "ready") { G.p.y = boardX(S.board); placeBallMesh(G.p.x, G.p.y, 0, true); } }));
+  $("gear").addEventListener("click", () => { sheet.hidden = !sheet.hidden; $("sheetMsg").textContent = ""; $("logTxt").hidden = true; $("clearAsk").hidden = true; paint(); });
+  $("sheetClose").addEventListener("click", () => { sheet.hidden = true; });
+  $("viewBtn").addEventListener("click", () => { S.view = S.view === "zoom" ? "whole" : "zoom"; saveSettings(); paint(); });
+  $("copyLog").addEventListener("click", () => {
+    const txt = JSON.stringify(allShots()); const msg = $("sheetMsg"), ta = $("logTxt");
+    const fallback = () => { ta.value = txt; ta.hidden = false; ta.focus(); ta.select(); msg.textContent = "Copy blocked here - the log is selected below; copy it by hand."; };
+    try { navigator.clipboard.writeText(txt).then(() => { msg.textContent = `Copied ${allShots().length} balls (${(txt.length / 1024).toFixed(1)} KB).`; }, fallback); } catch (e) { fallback(); }
+  });
+  $("clearLog").addEventListener("click", () => { $("clearAsk").hidden = false; });
+  $("clearNo").addEventListener("click", () => { $("clearAsk").hidden = true; });
+  $("clearYes").addEventListener("click", () => { store.set("rcbowl.shots", []); MEMLOG.length = 0; $("clearAsk").hidden = true; $("sheetMsg").textContent = "Shot log cleared."; paint(); });
+  paint();
+}
+let PH = null, lastT = 0, acc = 0, frames = 0, TS = 1, PAUSED = false;
+function loop(ts) {
+  requestAnimationFrame(loop); frames++;
+  const dt = PAUSED ? 0 : (lastT ? Math.min(0.5, (ts - lastT) / 1000) : 0) * TS; lastT = ts;
+  if (G.phase === "ready" && (CTL.defl > 0)) { G.phase = "rolling"; G.tPush = G.t; $("zoneHint").hidden = true; }
+  if (G.phase === "rolling" || G.phase === "ready") {
+    acc += dt; let n = 0;
+    while (acc >= PL.DT && n < 60 && !PAUSED) { acc -= PL.DT; n++; if (G.phase === "rolling") plantTick(); if (G.phase !== "rolling" || PAUSED) break; }
+    if (!PAUSED && n >= 60) acc = Math.min(acc, PL.DT);
+    if (G.phase === "rolling") { const a = clamp(acc / PL.DT, 0, 1); placeBallMesh(G.prev.x + (G.p.x - G.prev.x) * a, G.prev.y + (G.p.y - G.prev.y) * a, 0, false); }
+  } else acc = 0;
+  if (G.phase === "gutter" && dt > 0) gutterTick(dt);
+  if (G.phase === "pins" && !PAUSED) pinsTick(dt);
+  if (G.phase === "pins" || (G.phase === "result" && !(G.entry && G.entry.gutter) && PH.ball.type !== CANNON.Body.STATIC)) {
+    const b = PH.ball; W.ball.position.set(b.position.x, b.position.y, b.position.z); W.ball.quaternion.set(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w);
+    W.shadow.position.set(b.position.x, 0.002, b.position.z); W.shadow.visible = b.position.y > 0.05 && b.position.y < 0.2;
+  }
+  syncPins();
+  const [, vh] = viewSize(); setCamera(S.view, vh, ballWorld(), dt);
+  W.renderer.render(W.scene, W.camera); updateHud(false);
+}
+function init() {
+  if (typeof THREE === "undefined" || typeof CANNON === "undefined") { document.getElementById("zoneHint").textContent = "Could not load three.js / cannon.js from cdnjs."; return; }
+  buildWorld($("cv")); PH = makePhys(); bindStick(); bindStrip(); bindSettings();
+  $("recenter").addEventListener("click", recenter); $("resetBall").addEventListener("click", resetBall);
+  if (window.ResizeObserver) new ResizeObserver(resize).observe($("view")); window.addEventListener("resize", resize); resize();
+  setMode("strip");
+  const DOE = window.DeviceOrientationEvent;
+  if (DOE && typeof DOE.requestPermission === "function") $("prompt").hidden = false; else listenMotion();
+  newFrame(); requestAnimationFrame(loop);
+  if (window.__ARTIFACT) { (async () => { try { const db = await (window.claude && window.claude.use ? window.claude.use("db") : null); DB = db || null; } catch (e) { DB = null; } })(); }
+  window.__sim = {
+    project(x, y, z) { const v = new THREE.Vector3(x, y, z).project(W.camera), r = $("cv").getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height, z: v.z }; },
+    cam() { const r = $("cv").getBoundingClientRect(), c = W.camera; return { fov: c.fov, pitch: c.rotation.x * 180 / Math.PI, yaw: -c.rotation.y * 180 / Math.PI, pos: [c.position.x, c.position.y, c.position.z], rect: { left: r.left, top: r.top, width: r.width, height: r.height }, dpr: W.renderer.getPixelRatio() }; },
+    dim: DIM, spots: PIN_SPOTS, boardX, plantRun, chart: CHART.chart, chartF: [CHART.F0, CHART.F1], pinTest, stickCurve,
+    state() { const p = G.p; return { phase: G.phase, ball: G.ballNo, s: p ? ballS(p) : null, x: p ? p.y : null, v: speed(), psi: psiC(), mode: CTL.mode, defl: CTL.defl, theta: CTL.theta, pins1: G.pins1, pins2: G.pins2, frameDone: G.frameDone, res: G.res, physT: G.physT, frames, line: G.line, mesh: W.ball.position.toArray().map(v => +v.toFixed(3)), meshVis: W.ball.visible }; },
+    settings(o) { if (o) { Object.assign(S, o); saveSettings(); } return Object.assign({}, S); },
+    log: () => allShots(),
+    timeScale(v) { if (v > 0) TS = v; return TS; },
+    pause(v) { PAUSED = !!v; return PAUSED; },
+  };
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
+})();
+</script>
+</body>
+</html>
