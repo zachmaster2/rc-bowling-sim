@@ -54,7 +54,7 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
 #prow{position:relative;flex:1 1 auto;display:flex;min-height:0}
 #zone{position:relative;flex:1 1 auto;touch-action:none;cursor:crosshair;margin-left:env(safe-area-inset-left,0px)}
 #zoneHint{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-faint);font-size:12px;pointer-events:none;text-align:center;padding:0 10px}
-#ring{position:absolute;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:2px solid var(--stick-ring);background:var(--stick-fill);
+#ring{position:fixed;left:0;top:0;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:2px solid var(--stick-ring);background:var(--stick-fill);
   pointer-events:none;opacity:0;transition:opacity .25s}
 #ring.on{opacity:1;transition:opacity .05s}
 #knob{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:var(--knob);box-shadow:0 2px 8px rgba(0,0,0,.5)}
@@ -103,10 +103,11 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
   <div id="panel">
     <div id="strip" hidden><canvas id="stripTicks"></canvas><div id="stripLbl">◀ drag to turn the controller ▶</div></div>
     <div id="prow">
-      <div id="zone"><div id="zoneHint">Put your thumb anywhere here — push to drive</div><div id="ring"><div id="knob"></div></div></div>
+      <div id="zone"><div id="zoneHint">Put your thumb anywhere here — push to drive</div></div>
       <div id="bcol"><div class="btns"><button id="recenter">Recenter</button><button id="resetBtn" aria-label="Reset this ball">Reset</button></div><div id="src">Strip</div><div id="prompt" hidden>Tap Recenter to enable motion</div></div>
     </div>
   </div>
+  <div id="ring"><div id="knob"></div></div>
   <div id="sheet" hidden>
     <h3>Settings <button class="pill" id="sheetClose">Done</button></h3>
     <div class="set"><label>Scheme<small id="schemeNote">Point the phone, push the stick</small></label><div class="seg" data-k="scheme"><button data-v="A">A Point+push</button><button data-v="B">B Line hold<span class="tag">EXP</span></button></div></div>
@@ -538,12 +539,10 @@ function bindStick() {
   const setKnob = (dx, dy) => { knob.style.transform = `translate(${dx}px,${dy}px)`; };
   zone.addEventListener("pointerdown", (e) => {
     if (CTL.stickId != null) return;
-    const r = zone.getBoundingClientRect(); CTL.stickId = e.pointerId; try { zone.setPointerCapture(e.pointerId); } catch (_) {}
-    const mx = RING_R + 24;
-    CTL.bx = clamp(e.clientX - r.left, Math.min(mx, r.width / 2), Math.max(r.width - mx, r.width / 2));
-    CTL.by = clamp(e.clientY - r.top, Math.min(RING_R, r.height / 2), Math.max(r.height - RING_R, r.height / 2));
+    CTL.stickId = e.pointerId; try { zone.setPointerCapture(e.pointerId); } catch (_) {}
+    CTL.bx = e.clientX; CTL.by = e.clientY;
     ring.style.left = CTL.bx + "px"; ring.style.top = CTL.by + "px"; ring.classList.add("on"); knob.classList.remove("home");
-    $("zoneHint").hidden = true; moveStick(e.clientX - r.left, e.clientY - r.top); e.preventDefault(); wake();
+    $("zoneHint").hidden = true; moveStick(e.clientX, e.clientY); e.preventDefault(); wake();
   });
   const moveStick = (px, py) => {
     let dx = px - CTL.bx, dy = py - CTL.by; const d = Math.hypot(dx, dy);
@@ -551,7 +550,7 @@ function bindStick() {
     setKnob(dx, dy); const m = Math.min(1, d / RING_R);
     CTL.defl = m <= DEAD ? 0 : (m - DEAD) / (1 - DEAD); CTL.theta = Math.atan2(dx, -dy) * 180 / Math.PI;
   };
-  zone.addEventListener("pointermove", (e) => { if (e.pointerId !== CTL.stickId) return; const r = zone.getBoundingClientRect(); moveStick(e.clientX - r.left, e.clientY - r.top); });
+  zone.addEventListener("pointermove", (e) => { if (e.pointerId !== CTL.stickId) return; moveStick(e.clientX, e.clientY); });
   const end = (e) => { if (e.pointerId !== CTL.stickId) return; CTL.stickId = null; CTL.defl = 0; knob.classList.add("home"); setKnob(0, 0); ring.classList.remove("on"); };
   zone.addEventListener("pointerup", end); zone.addEventListener("pointercancel", end); zone.addEventListener("lostpointercapture", end);
   for (const el of [$("panel"), $("cv"), $("view")]) el.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
@@ -772,7 +771,7 @@ function init() {
     cam() { const r = $("cv").getBoundingClientRect(), c = W.camera; return { fov: c.fov, pitch: c.rotation.x * 180 / Math.PI, yaw: -c.rotation.y * 180 / Math.PI, pos: [c.position.x, c.position.y, c.position.z], rect: { left: r.left, top: r.top, width: r.width, height: r.height }, dpr: W.renderer.getPixelRatio() }; },
     dim: DIM, spots: PIN_SPOTS, boardX, plantRun, chart: CHART.chart, chartF: [CHART.F0, CHART.F1], pinTest, stickCurve,
     setEye(s) { G.eyeS = G.eyeCmd = s; return s; },
-    state() { const p = G.p; return { pins: PH.inPlay.map((v, i) => v ? (PH.pinDown(i) ? 'down' : 'up') : 'gone'), spotErr: Math.max(0, ...PH.pins.map((b, i) => PH.inPlay[i] ? Math.hypot(b.position.x - b.spot[0], -b.position.z - b.spot[1]) : 0)), cardOpen: !$("card").hidden, eyeS: G.eyeS, phase: G.phase, ball: G.ballNo, s: p ? ballS(p) : null, x: p ? p.y : null, v: speed(), psi: psiC(), mode: CTL.mode, defl: CTL.defl, theta: CTL.theta, pins1: G.pins1, pins2: G.pins2, frameDone: G.frameDone, res: G.res, physT: G.physT, frames, line: G.line, mesh: W.ball.position.toArray().map(v => +v.toFixed(3)), meshVis: W.ball.visible }; },
+    state() { const p = G.p; return { pins: PH.inPlay.map((v, i) => v ? (PH.pinDown(i) ? 'down' : 'up') : 'gone'), spotErr: Math.max(0, ...PH.pins.map((b, i) => PH.inPlay[i] ? Math.hypot(b.position.x - b.spot[0], -b.position.z - b.spot[1]) : 0)), cardOpen: !$("card").hidden, eyeS: G.eyeS, phase: G.phase, ball: G.ballNo, s: p ? ballS(p) : null, x: p ? p.y : null, v: speed(), psi: psiC(), mode: CTL.mode, defl: CTL.defl, theta: CTL.theta, bx: CTL.bx, by: CTL.by, pins1: G.pins1, pins2: G.pins2, frameDone: G.frameDone, res: G.res, physT: G.physT, frames, line: G.line, mesh: W.ball.position.toArray().map(v => +v.toFixed(3)), meshVis: W.ball.visible }; },
     settings(o) { if (o) { Object.assign(S, o); saveSettings(); } return Object.assign({}, S); },
     log: () => allShots(),
     timeScale(v) { if (v > 0) TS = v; return TS; },
