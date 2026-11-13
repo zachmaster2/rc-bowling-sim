@@ -19,6 +19,18 @@ The gear button opens the settings: control scheme, the stick's response curve, 
 - **B, hold the line:** the push from rest takes the line where the controller points; after that the ball holds that line. Lean the stick and the ball moves over, and the line keeps part of each lean. **Lean slope** sets how much course a degree of lean gives (between 10° and 45° of lean); **Line keeps a lean** sets how long a lean must be held for the line to keep all of it (*never* keeps nothing). Turning the controller after the push does nothing within 15°.
 - **Hold button** (off by default; it needs phone turning on): a button for the other thumb, at the left or right of the lane view. Under A, holding it locks where the controller points and letting go jumps back to where the phone points. Under B, holding it lets the phone swing the line and letting go leaves the line where it is.
 
+## Driving it with a handset, on a TV
+
+The simulator also reads a Bluetooth gamepad through the browser's Gamepad API, so that a hand-held controller can drive it on a big screen: a laptop running the page in Chrome, shown on a TV over HDMI. An iPhone cannot host such a controller (iOS accepts only console and MFi gamepads, and Safari has no Web Bluetooth).
+
+1. Pair the handset with the computer (Windows: Settings > Bluetooth & devices > Add device), open the page in Chrome, and press any button on the handset; Chrome shows a gamepad to a page only after a button press.
+2. While a handset is connected the touch panel is hidden, the lane view fills the screen, the text is sized for a TV, and the handset's stick and its STOP and HOLD keys are drawn in the lower left corner.
+3. The stick drives exactly as the touch stick does. The handset's own turn (its gyro) turns the controller, as the phone does with phone turning on.
+4. **STOP** brakes the ball while it is held, as hard as the lane's grip allows; on the result card it takes the next ball. **HOLD** means what the on-screen Hold button means. **Recenter** sets straight ahead to where the handset points now, and **Reset** puts the ball back.
+5. **Settings > Handset** shows what the page sees of the handset: its axes and the buttons being pressed. **Setup** sets which axis and button does what, so a different gamepad works too.
+
+The stage-1 handset is a design of its own (a printed grip, an ESP32-S3 board, an IMU, a thumb-stick and four buttons, no soldering). Its firmware reports the stick on axes 1 and 2 and the turn on axis 3 (heading / 180°, positive to the right), and STOP, HOLD, Recenter, Reset and the stick's click on buttons 1 to 5. These are the page's defaults.
+
 ## Notes
 
 - The lane, its markings and the pins are drawn to regulation dimensions, seen from the eye height of a 5 ft 9 in driver standing behind the approach.
