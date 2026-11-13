@@ -15,9 +15,10 @@ The gear button opens the settings: control scheme, the stick's response curve, 
 
 ## The two control schemes
 
-- **A, point and push:** the ball travels where the controller points, turned by the stick's angle. **Stick curve** (on by default) makes the stick less sensitive near straight ahead.
+- **A, point and push:** the ball travels where the controller points, turned by the stick's angle. **Stick curve** (50 % by default) softens the stick within 30° of straight ahead: 0 % not at all (one for one), 100 % most (designer 25's curve); 10° of stick gives 6.3° of course at 50 %, 2.6° at 100 %.
 - **B, hold the line:** the push from rest takes the line where the controller points; after that the ball holds that line. Lean the stick and the ball moves over, and the line keeps part of each lean. **Lean slope** sets how much course a degree of lean gives (between 10° and 45° of lean); **Line keeps a lean** sets how long a lean must be held for the line to keep all of it (*never* keeps nothing). Turning the controller after the push does nothing within 15°.
-- **Hold button** (off by default; it needs phone turning on): a button for the other thumb, at the left or right of the lane view. Under A, holding it locks where the controller points and letting go jumps back to where the phone points. Under B, holding it lets the phone swing the line and letting go leaves the line where it is.
+- **Hold button** (off by default; choosing a side turns phone turning on, which it needs): a button for the other thumb, at the left or right of the lane view. Under A, holding it locks where the controller points and letting go jumps back to where the phone points. Under B, holding it lets the phone swing the line and letting go leaves the line where it is.
+- **Course arrow** (on by default): the blue arrow at the foot of the lane view shows where the ball is being sent right now: under A the aim (HOLD's locked aim while it is held) turned by the stick through the curve; under B the held line with its lean. The amber **pointing marker** beside it (with phone turning on) shows where the phone points, so HOLD and B's held line show as the two arrows parting.
 
 ## Driving it with a handset, on a TV
 
