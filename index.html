@@ -35,6 +35,12 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
 .iconbtn svg{width:17px;height:17px;fill:none;stroke:var(--ink);stroke-width:1.7}
 #marker{position:absolute;left:50%;bottom:4px;width:30px;height:36px;margin-left:58px;pointer-events:none;transform-origin:50% 85%}
 #marker svg{width:100%;height:100%}
+/* the HOLD button (an option, 12 Nov): in the lane view just above the panel, for the other thumb - outside the stick's zone, clear of Reset */
+#holdBtn{position:absolute;bottom:20px;width:68px;height:68px;border-radius:16px;border:1.5px solid var(--accent);background:rgba(20,22,27,.62);color:var(--accent);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0;cursor:pointer;touch-action:none;z-index:2}
+#holdBtn.left{left:var(--gut-l)} #holdBtn.right{right:var(--gut-r)}
+#holdBtn b{font-size:14px;font-weight:700;letter-spacing:.06em} #holdBtn span{font-size:9.5px;color:var(--ink-dim);pointer-events:none}
+#holdBtn.on{background:var(--accent);color:var(--accent-ink)} #holdBtn.on span{color:var(--accent-ink)}
 .pill{height:30px;padding:0 12px;border-radius:15px;border:1px solid var(--line);background:var(--card);font-size:12px;cursor:pointer}
 .pill.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
 /* result card */
@@ -98,6 +104,7 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
       </div>
     </div>
     <div id="marker"><svg viewBox="0 0 34 40"><path d="M17 2 L28 20 L20.5 20 L20.5 37 L13.5 37 L13.5 20 L6 20 Z" fill="var(--marker)" fill-opacity=".85" stroke="#000" stroke-opacity=".45" stroke-width="1"/></svg></div>
+    <button id="holdBtn" class="right" hidden aria-label="Hold"><b>HOLD</b><span id="holdSub">lock aim</span></button>
     <div id="card" hidden></div>
   </div>
   <div id="panel">
@@ -110,14 +117,16 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
   <div id="ring"><div id="knob"></div></div>
   <div id="sheet" hidden>
     <h3>Settings <button class="pill" id="sheetClose">Done</button></h3>
-    <div class="set"><label>Scheme<small id="schemeNote">Point the phone, push the stick</small></label><div class="seg" data-k="scheme"><button data-v="A">A Point+push</button><button data-v="B">B Line hold<span class="tag">EXP</span></button></div></div>
-    <div class="set"><label>Stick curve<small>flat near straight ahead (±30°)</small></label><div class="seg" data-k="curve"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
+    <div class="set"><label>Scheme<small id="schemeNote">Point the phone, push the stick</small></label><div class="seg" data-k="scheme"><button data-v="A">A Point+push</button><button data-v="B">B Hold line</button></div></div>
+    <div class="set" id="curveRow"><label>Stick curve<small>flat near straight ahead (±30°)</small></label><div class="seg" data-k="curve"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
+    <div class="set" id="slopeRow"><label>Lean slope<small>° of course per ° of lean, from 10° to 45° of lean</small></label><div class="num" data-k="slope" data-min="0.10" data-max="0.30" data-step="0.05"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
+    <div class="set" id="keepsRow"><label>Line keeps a lean<small>a lean held this long is kept whole; never = mapping B</small></label><div class="num" data-k="keeps" data-vals="0,2,3,4,5,6,7,8"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set"><label>Sensing<small>the ball's knowledge of the controller</small></label><div class="seg" data-k="sensing"><button data-v="ideal">Ideal</button><button data-v="designed">As designed</button></div></div>
     <div class="set"><label>Turn the controller with the phone<small>off: the stick alone drives</small></label><div class="seg" data-k="phoneTurn"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
     <div class="set"><label>Start board<small>1-39, counted from the right; 20 = centre</small></label><div class="num" data-k="board" data-min="1" data-max="39" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set"><label>Ball start<small>metres before the foul line</small></label><div class="num" data-k="ballStart" data-min="1.5" data-max="3.6" data-step="0.1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set"><label>Walk up with the ball<small>you follow it up the approach, stop at the line</small></label><div class="seg" data-k="walk"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
-    <div class="set" id="nudgeRow"><label>Nudge speed<small>Scheme B: full sideways stick</small></label><div class="num" data-k="nudge" data-min="0.10" data-max="0.60" data-step="0.05"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
+    <div class="set" id="holdRow"><label>Hold button<small id="holdNote">works only with “Turn the controller with the phone” on</small></label><div class="seg" data-k="hold"><button data-v="off">Off</button><button data-v="left">Left</button><button data-v="right">Right</button></div></div>
     <div class="set" id="markerRow"><label>Pointing marker</label><div class="seg" data-k="marker"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
     <div class="set"><label>Shot log<small id="logCount">0 balls kept</small></label><div style="display:flex;gap:6px"><button class="pill" id="copyLog">Copy shot log</button><button class="pill" id="clearLog">Clear…</button></div></div>
     <div class="set"><label>Pins<small>start the frame again with a full rack</small></label><button class="pill" id="newFrameBtn">New frame (re-rack all pins)</button></div>
@@ -172,14 +181,8 @@ function plantStep(p, c) {
     const nx = c.dvNoise ? c.dvNoise() : 0, ny = c.dvNoise ? c.dvNoise() : 0;
     const vox = p.vx + (slipping ? PL.SLIP * p.ax / an : 0) + nx, voy = p.vy + (slipping ? PL.SLIP * p.ay / an : 0) + ny;
     const vperp = -vox * uy + voy * ux;
-    if (c.law === "line") {
-      const aperp = Math.max(-A, Math.min(A, (c.lineSide - vperp) / PL.TAU));
-      const room = Math.sqrt(Math.max(A * A - aperp * aperp, 0)), apar = Math.sign(c.lineFwd) * Math.min(Math.abs(c.lineFwd) * PL.A_DRIVE, room);
-      cx = apar * ux - aperp * uy; cy = apar * uy + aperp * ux;
-    } else {
-      const aperp = -Math.max(-A, Math.min(A, vperp / PL.TAU)), apar = Math.sqrt(Math.max(A * A - aperp * aperp, 0));
-      cx = apar * ux - aperp * uy; cy = apar * uy + aperp * ux;
-    }
+    const aperp = -Math.max(-A, Math.min(A, vperp / PL.TAU)), apar = Math.sqrt(Math.max(A * A - aperp * aperp, 0));
+    cx = apar * ux - aperp * uy; cy = apar * uy + aperp * ux;
   }
   const W2 = PL.WN * PL.WN, Z2 = 2 * PL.ZETA * PL.WN;
   p.jx += DT * (W2 * (cx - p.ax) - Z2 * p.jx); p.jy += DT * (W2 * (cy - p.ay) - Z2 * p.jy); p.ax += DT * p.jx; p.ay += DT * p.jy;
@@ -208,6 +211,18 @@ function plantRun(o) {
   r.series = ser; return r;
 }
 function stickCurve(th) { const a = Math.abs(th), u = Math.min(a / 30, 1); return a < 30 ? th * (3 * u * u - 2 * u * u * u) : th; }
+const D27 = { KNEE: 10, T2: 45, T1: 75, IMAX: 15, HFLAT: 15, HONE: 30 };
+function fineD(th, g) {
+  const a = Math.abs(th), tk = D27.KNEE, t2 = D27.T2, t1 = D27.T1, hh = t1 - t2, yk = g * tk / 3, y2 = yk + g * (t2 - tk);
+  let y;
+  if (a <= tk) y = g * a * a * a / (3 * tk * tk);
+  else if (a <= t2) y = yk + g * (a - tk);
+  else if (a < t1) { const u = (a - t2) / hh, u2 = u * u, u3 = u2 * u; y = (2 * u3 - 3 * u2 + 1) * y2 + (u3 - 2 * u2 + u) * hh * g + (-2 * u3 + 3 * u2) * t1 + (u3 - u2) * hh; }
+  else y = a;
+  return Math.sign(th) * y;
+}
+function rfineD(th, g) { const a = Math.abs(th); return fineD(Math.max(-D27.T2, Math.min(D27.T2, th)), g) * Math.max(0, Math.min(1, (D27.T1 - a) / (D27.T1 - D27.T2))); }
+function hflatD(h) { const a = Math.abs(h); if (a <= D27.HFLAT) return 0; if (a < D27.HONE) { const u = (a - D27.HFLAT) / (D27.HONE - D27.HFLAT); return h * (3 * u * u - 2 * u * u * u); } return h; }
 const CHART = (() => {
   const OFF = []; for (let i = 0; i <= 22; i++) OFF.push(i * 0.25);
   const C2 = [3, 4, 17, 11, 13, 52, 65, 78, 92, 94, 95, 95, 81, 68, 28, 16, 40, 28, 22, 29, 41, 25, 10];
@@ -467,13 +482,17 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
 };
-const DEFAULTS = { scheme: "A", curve: "on", sensing: "ideal", phoneTurn: "off", board: 20, nudge: 0.30, marker: "on", ballStart: 1.5, walk: "on", v: 2 };
+const DEFAULTS = { scheme: "A", curve: "on", sensing: "ideal", phoneTurn: "off", board: 20, slope: 0.20, keeps: 4, hold: "off", marker: "on", ballStart: 1.5, walk: "on", v: 2 };
 const STORED = store.get("rcbowl.settings", {}); if (STORED.v !== 2) { if (STORED.ballStart === 3.5) delete STORED.ballStart; STORED.v = 2; }
+delete STORED.nudge;
 const S = Object.assign({}, DEFAULTS, STORED);
 const saveSettings = () => store.set("rcbowl.settings", S);
 const CTL = { mode: "strip", heading: 0, lastRaw: null, ref: 0, strip: 0, askedAt: 0, got: false, gotAt: 0, perm: null,
-  stickId: null, defl: 0, theta: 0, bx: 0, by: 0 };
+  stickId: null, defl: 0, theta: 0, bx: 0, by: 0, holdId: null, holdDown: false, holdPsi: 0, holdPrev: 0 };
 function psiC() { if (S.phoneTurn !== "on") return 0; return CTL.mode === "motion" ? wrap180(CTL.heading - CTL.ref) : CTL.strip; }
+const holdShown = () => S.hold !== "off" && S.phoneTurn === "on";
+const holdActive = () => CTL.holdDown && holdShown();
+function psiSteer() { return holdActive() && S.scheme === "A" ? CTL.holdPsi : psiC(); }
 function headingOf(a, b, g) {
   const d = Math.PI / 180, cA = Math.cos(a * d), sA = Math.sin(a * d), cB = Math.cos(b * d), sB = Math.sin(b * d), cG = Math.cos(g * d), sG = Math.sin(g * d);
   const tx = -cB * sA, ty = cA * cB, tz = sB;
@@ -516,7 +535,33 @@ function applyTurn() {
     if (DOE && typeof DOE.requestPermission === "function" && CTL.perm !== "granted") $("prompt").hidden = false; else if (!CTL.got) listenMotion();
     setMode(CTL.got ? "motion" : CTL.mode);
   }
-  updateHud(true);
+  applyHold(); updateHud(true);
+}
+function applyHold() {
+  const b = $("holdBtn"), show = holdShown();
+  b.hidden = !show; b.classList.toggle("left", S.hold === "left"); b.classList.toggle("right", S.hold !== "left");
+  $("holdSub").textContent = S.scheme === "B" ? "free hand" : "lock aim";
+  if (!show && CTL.holdDown) holdUp();
+}
+function holdDownAt() {
+  CTL.holdDown = true; CTL.holdPsi = CTL.holdPrev = psiC(); $("holdBtn").classList.add("on");
+  if (G.log) { G.log.hold = G.log.hold || []; G.log.hold.push([+G.t.toFixed(2), null]); }
+}
+function holdUp() {
+  CTL.holdDown = false; CTL.holdId = null; $("holdBtn").classList.remove("on");
+  const h = G.log && G.log.hold; if (h && h.length && h[h.length - 1][1] == null) h[h.length - 1][1] = +G.t.toFixed(2);
+}
+function bindHold() {
+  const b = $("holdBtn");
+  b.addEventListener("pointerdown", (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (CTL.holdId != null || !holdShown()) return;
+    CTL.holdId = e.pointerId; try { b.setPointerCapture(e.pointerId); } catch (_) {}
+    holdDownAt(); wake();
+  });
+  const up = (e) => { if (e.pointerId !== CTL.holdId) return; holdUp(); };
+  b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up); b.addEventListener("lostpointercapture", up);
+  b.addEventListener("click", (e) => e.preventDefault());
 }
 function recenter() {
   askMotion();
@@ -578,10 +623,13 @@ function newBall() {
   G.p = makePlant(PL.APPROACH - S.ballStart, boardX(S.board)); G.eyeS = G.eyeCmd = DIM.eyeBackS; G.gap = -S.ballStart - DIM.eyeBackS; G.prev = { x: G.p.x, y: G.p.y }; G.phase = "ready"; G.t = 0; G.tPush = null; G.line = null; G.stillT = 0; G.gut = null; G.entry = null; G.physT = 0;
   const r = G.rng; G.err = { near: 3.5 * gauss(r), far: 1.78 * gauss(r), ou: 1.6 * gauss(r) };
   G.log = { id: Date.now().toString(36) + Math.floor(G.rng() * 1e4).toString(36), time: new Date().toISOString(), ball: G.ballNo,
-    set: { scheme: S.scheme, curve: S.curve, sensing: S.sensing, phoneTurn: S.phoneTurn, board: S.board, nudge: S.nudge, ballStart: S.ballStart, walk: S.walk }, cols: ["t", "x", "y", "vx", "vy", "psi_c", "stick_deg", "stick_defl", "eye_s"], series: [] };
+    set: logSet(),
+    cols: ["t", "x", "y", "vx", "vy", "psi_c", "stick_deg", "reaim_deg", "line_psi0", "stick_defl", "eye_s"], series: [], hold: CTL.holdDown ? [[0, null]] : [] };
   G.lastSample = -1; $("card").hidden = true;
   W.ball.visible = true; placeBallMesh(G.p.x, G.p.y, 0, true);
 }
+function logSet() { return { scheme: S.scheme, curve: S.curve, slope: S.slope, keeps: S.keeps, hold: S.hold, sensing: S.sensing, phoneTurn: S.phoneTurn, board: S.board, ballStart: S.ballStart, walk: S.walk }; }
+function startPush() { G.phase = "rolling"; G.tPush = G.t; G.log.set = logSet(); }
 function newFrame() { G.ballNo = 1; G.pins1 = 0; G.pins2 = 0; G.frameDone = false; PH.resetAll(); newBall(); updateHud(true); }
 function sensErr(dt) {
   if (S.sensing !== "designed") return 0;
@@ -589,19 +637,28 @@ function sensErr(dt) {
   G.err.ou = rho * G.err.ou + Math.sqrt(1 - rho * rho) * 1.6 * gauss(G.rng);
   return (1 - w) * G.err.near + w * G.err.far + G.err.ou;
 }
+function dirD(L, theta, defl, psi, e, dt) {
+  const P = fineD(theta, S.slope);
+  if (defl > 0 && S.keeps > 0) L.I = clamp(L.I + rfineD(theta, S.slope) / S.keeps * dt, -D27.IMAX, D27.IMAX);
+  return L.psi0 + e + hflatD(wrap180(psi - L.psi0)) + L.I + P;
+}
 function plantTick() {
   const DT = PL.DT, p = G.p, s = ballS(p); G.t += DT;
   if (window.__testTick) { try { window.__testTick(s); } catch (e) {} }
-  const psi = psiC(), designed = S.sensing === "designed", e = sensErr(DT);
+  const psiLive = psiC(), psi = psiSteer(), designed = S.sensing === "designed", e = sensErr(DT);
+  if (holdActive()) {
+    const d = wrap180(psiLive - CTL.holdPrev); CTL.holdPrev = psiLive; if (S.scheme === "B" && G.line) G.line.psi0 += d;
+  }
   let cmd;
   if (S.scheme === "B") {
-    if (!G.line && CTL.defl > 0 && speed() < 0.02) G.line = { dir: psi + e };
-    const fwd = CTL.defl * Math.cos(CTL.theta * Math.PI / 180), side = CTL.defl * Math.sin(CTL.theta * Math.PI / 180);
-    cmd = { law: "line", dir: G.line ? G.line.dir : psi, stick: G.line ? CTL.defl : 0, lineFwd: fwd, lineSide: side * S.nudge };
+    if (G.line && CTL.defl === 0 && speed() < 0.02) G.line = null;
+    if (!G.line && CTL.defl > 0) G.line = { psi0: psi, I: 0 };
+    cmd = G.line ? { law: "travel", dir: dirD(G.line, CTL.theta, CTL.defl, psi, e, DT), stick: CTL.defl } : { law: "travel", dir: psi + e, stick: 0 };
   } else {
     const th = S.curve === "on" ? stickCurve(CTL.theta) : CTL.theta;
     cmd = { law: "travel", dir: psi + e + th, stick: CTL.defl };
   }
+  G.cmdDir = cmd.dir - e;
   if (ballS(p) < 0 && Math.abs(p.y) >= DIM.laneW / 2 + DIM.gutterW - DIM.ballR - 1e-9 && Math.sin(cmd.dir * Math.PI / 180) * Math.sign(p.y) > 0) {
     const c = Math.cos(cmd.dir * Math.PI / 180); cmd = { law: "travel", dir: c >= 0 ? 0 : 180, stick: cmd.stick * Math.abs(c) };
   }
@@ -615,7 +672,8 @@ function plantTick() {
     const sMin = G.eyeS + 0.30; if (s2 < sMin) { p.x = sMin + PL.APPROACH; p.vx = Math.max(p.vx, 0); }
   } else if (Math.abs(p.y) > DIM.laneW / 2) { startGutter(); return; }
   if (s2 >= DIM.headS - 0.3) { handOff(); return; }
-  if (Math.round(G.t * 100) % 10 === 0) G.log.series.push([+G.t.toFixed(2), +p.x.toFixed(3), +p.y.toFixed(4), +p.vx.toFixed(3), +p.vy.toFixed(3), +psi.toFixed(1), +CTL.theta.toFixed(1), +CTL.defl.toFixed(2), +G.eyeS.toFixed(3)]);
+  if (Math.round(G.t * 100) % 10 === 0) G.log.series.push([+G.t.toFixed(2), +p.x.toFixed(3), +p.y.toFixed(4), +p.vx.toFixed(3), +p.vy.toFixed(3), +psiLive.toFixed(1), +CTL.theta.toFixed(1),
+    G.line ? +G.line.I.toFixed(3) : null, G.line ? +G.line.psi0.toFixed(2) : null, +CTL.defl.toFixed(2), +G.eyeS.toFixed(3)]);
 }
 function startGutter() {
   const p = G.p; G.phase = "gutter"; G.gut = { side: Math.sign(p.y), v: Math.max(0.3, Math.hypot(p.vx, p.vy)), s: ballS(p), x: p.y, t: 0 };
@@ -715,19 +773,31 @@ function updateHud(force) {
   const psi = psiC(); $("hPsi").textContent = `${psi >= 0 ? "+" : "−"}${Math.abs(psi).toFixed(1)}°`; $("hBall").textContent = `Ball ${G.ballNo}`;
   const mk = $("marker"); mk.hidden = S.marker !== "on" || S.phoneTurn !== "on"; mk.style.transform = `rotate(${psi.toFixed(2)}deg)`;
 }
+function numText(k, v) {
+  if (k === "ballStart") return `${(+v).toFixed(1)} m`;
+  if (k === "slope") return (+v).toFixed(2);
+  if (k === "keeps") return +v > 0 ? `${+v} s` : "never";
+  return String(v);
+}
 function bindSettings() {
   const sheet = $("sheet");
   const paint = () => {
     sheet.querySelectorAll(".seg").forEach((seg) => seg.querySelectorAll("button").forEach((b) => b.classList.toggle("on", String(S[seg.dataset.k]) === b.dataset.v)));
-    sheet.querySelectorAll(".num").forEach((n) => { const k = n.dataset.k; n.querySelector("output").textContent = k === "nudge" ? `${(+S[k]).toFixed(2)} m/s` : k === "ballStart" ? `${(+S[k]).toFixed(1)} m` : S[k]; });
-    $("nudgeRow").hidden = S.scheme !== "B"; $("schemeNote").textContent = S.scheme === "B" ? "EXPERIMENTAL: line held; stick sideways slides it" : "Point the phone, push the stick";
-    $("markerRow").hidden = S.phoneTurn !== "on"; updateHud(true);
+    sheet.querySelectorAll(".num").forEach((n) => { const k = n.dataset.k; n.querySelector("output").textContent = numText(k, S[k]); });
+    const B = S.scheme === "B";
+    $("slopeRow").hidden = !B; $("keepsRow").hidden = !B; $("curveRow").hidden = B;
+    $("schemeNote").textContent = B ? "It holds its line — lean the stick to move it over" : "Point the phone, push the stick";
+    $("holdNote").textContent = S.phoneTurn !== "on" ? "works only with “Turn the controller with the phone” on"
+      : B ? "hold: turning the phone swings the line; let go: the line stays" : "hold: locks where it points; let go: it follows the phone again";
+    $("markerRow").hidden = S.phoneTurn !== "on"; applyHold(); updateHud(true);
     $("logCount").textContent = `${allShots().length} balls kept`;
   };
   sheet.querySelectorAll(".seg").forEach((seg) => seg.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; S[seg.dataset.k] = b.dataset.v; saveSettings(); paint();
     if (seg.dataset.k === "scheme" && G.phase === "ready") G.line = null; if (seg.dataset.k === "phoneTurn") applyTurn(); }));
   sheet.querySelectorAll(".num").forEach((n) => n.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; const k = n.dataset.k, st = +n.dataset.step;
-    S[k] = +clamp(+S[k] + st * +b.dataset.d, +n.dataset.min, +n.dataset.max).toFixed(2); saveSettings(); paint();
+    if (n.dataset.vals) { const vals = n.dataset.vals.split(",").map(Number); let i = vals.indexOf(+S[k]); if (i < 0) i = vals.indexOf(DEFAULTS[k]); S[k] = vals[clamp(i + +b.dataset.d, 0, vals.length - 1)]; }
+    else S[k] = +clamp(+S[k] + st * +b.dataset.d, +n.dataset.min, +n.dataset.max).toFixed(2);
+    saveSettings(); paint();
     if ((k === "board" || k === "ballStart") && G.phase === "ready") { newBall(); } }));
   $("gear").addEventListener("click", () => { sheet.hidden = !sheet.hidden; $("sheetMsg").textContent = ""; $("logTxt").hidden = true; $("clearAsk").hidden = true; paint(); });
   $("sheetClose").addEventListener("click", () => { sheet.hidden = true; });
@@ -751,7 +821,7 @@ function eyeTick(dt) {
 function loop(ts) {
   requestAnimationFrame(loop); frames++;
   const dt = PAUSED ? 0 : (lastT ? Math.min(0.5, (ts - lastT) / 1000) : 0) * TS; lastT = ts;
-  if (G.phase === "ready" && (CTL.defl > 0)) { G.phase = "rolling"; G.tPush = G.t; $("zoneHint").hidden = true; }
+  if (G.phase === "ready" && (CTL.defl > 0)) { startPush(); $("zoneHint").hidden = true; }
   if (G.phase === "rolling" || G.phase === "ready") {
     acc += dt; let n = 0;
     while (acc >= PL.DT && n < 60 && !PAUSED) { acc -= PL.DT; n++; if (G.phase === "rolling") plantTick(); if (G.phase !== "rolling" || PAUSED) break; }
@@ -772,7 +842,7 @@ function loop(ts) {
 }
 function init() {
   if (typeof THREE === "undefined" || typeof CANNON === "undefined") { document.getElementById("zoneHint").textContent = "Could not load three.js / cannon.js from cdnjs."; return; }
-  buildWorld($("cv")); PH = makePhys(); bindStick(); bindStrip(); bindSettings();
+  buildWorld($("cv")); PH = makePhys(); bindStick(); bindStrip(); bindHold(); bindSettings();
   $("recenter").addEventListener("click", recenter); $("resetBtn").addEventListener("click", resetThisBall);
   if (window.ResizeObserver) new ResizeObserver(resize).observe($("view")); window.addEventListener("resize", resize); resize();
   setMode("strip"); applyTurn();
@@ -781,11 +851,26 @@ function init() {
   window.__sim = {
     project(x, y, z) { const v = new THREE.Vector3(x, y, z).project(W.camera), r = $("cv").getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height, z: v.z }; },
     cam() { const r = $("cv").getBoundingClientRect(), c = W.camera; return { fov: c.fov, pitch: c.rotation.x * 180 / Math.PI, yaw: -c.rotation.y * 180 / Math.PI, pos: [c.position.x, c.position.y, c.position.z], rect: { left: r.left, top: r.top, width: r.width, height: r.height }, dpr: W.renderer.getPixelRatio() }; },
-    dim: DIM, spots: PIN_SPOTS, boardX, plantRun, chart: CHART.chart, chartF: [CHART.F0, CHART.F1], pinTest, stickCurve,
+    dim: DIM, spots: PIN_SPOTS, boardX, plantRun, chart: CHART.chart, chartF: [CHART.F0, CHART.F1], pinTest, stickCurve, fineD, rfineD, hflatD, D27,
+    runD(o) {
+      o = Object.assign({ v0: 4, x0: PL.APPROACH + 2, defl: 1, script: [], T: 4 }, o || {}); const p = makePlant(o.x0, 0); p.vx = o.v0; const L = { psi0: 0, I: 0 }, out = [];
+      const n = Math.round(o.T / PL.DT);
+      for (let k = 0; k < n; k++) {
+        const t = k * PL.DT; let th = 0, d = o.defl; for (const [a, b, ang, df] of o.script) if (t >= a - 1e-9 && t < b - 1e-9) { th = ang; d = df; }
+        const dir = dirD(L, th, d, 0, 0, PL.DT); plantStep(p, { law: "travel", dir, stick: d, go: true });
+        out.push([+(t + PL.DT).toFixed(2), th, d, dir, L.I, Math.atan2(p.vy, p.vx) * 180 / Math.PI, p.vy, Math.hypot(p.vx, p.vy)]);
+      }
+      return { cols: ["t", "stick_deg", "defl", "cmd_deg", "I_deg", "course_deg", "vy", "v"], rows: out };
+    },
+    tick(n) { for (let i = 0; i < (n || 1); i++) { if (G.phase === "ready" && CTL.defl > 0) startPush(); if (G.phase !== "rolling") break; plantTick(); } return this.state(); },
+    stick(theta, defl) { if (CTL.stickId == null) { CTL.theta = theta; CTL.defl = defl; } return [CTL.theta, CTL.defl]; },
+    turn(deg) { CTL.strip = clamp(deg, -179, 179); drawStrip(); return psiC(); },
+    halt() { const p = G.p; p.vx = p.vy = p.ax = p.ay = p.jx = p.jy = 0; return speed(); },
     setEye(s) { G.eyeS = G.eyeCmd = s; return s; },
     setBall(s, x) { G.p.x = s + PL.APPROACH; G.p.y = x || 0; G.prev = { x: G.p.x, y: G.p.y }; placeBallMesh(G.p.x, G.p.y, 0, true); return [s, x || 0]; },
     frame() { return Object.assign({}, W.frame); },
-    state() { const p = G.p; return { pins: PH.inPlay.map((v, i) => v ? (PH.pinDown(i) ? 'down' : 'up') : 'gone'), spotErr: Math.max(0, ...PH.pins.map((b, i) => PH.inPlay[i] ? Math.hypot(b.position.x - b.spot[0], -b.position.z - b.spot[1]) : 0)), cardOpen: !$("card").hidden, eyeS: G.eyeS, phase: G.phase, ball: G.ballNo, s: p ? ballS(p) : null, x: p ? p.y : null, v: speed(), psi: psiC(), mode: CTL.mode, defl: CTL.defl, theta: CTL.theta, bx: CTL.bx, by: CTL.by, frames, pins1: G.pins1, pins2: G.pins2, frameDone: G.frameDone, res: G.res, physT: G.physT, frames, line: G.line, mesh: W.ball.position.toArray().map(v => +v.toFixed(3)), meshVis: W.ball.visible }; },
+    state() { const p = G.p; return { pins: PH.inPlay.map((v, i) => v ? (PH.pinDown(i) ? 'down' : 'up') : 'gone'), spotErr: Math.max(0, ...PH.pins.map((b, i) => PH.inPlay[i] ? Math.hypot(b.position.x - b.spot[0], -b.position.z - b.spot[1]) : 0)), cardOpen: !$("card").hidden, eyeS: G.eyeS, phase: G.phase, ball: G.ballNo, s: p ? ballS(p) : null, x: p ? p.y : null, v: speed(), psi: psiC(), mode: CTL.mode, defl: CTL.defl, theta: CTL.theta, bx: CTL.bx, by: CTL.by, frames, pins1: G.pins1, pins2: G.pins2, frameDone: G.frameDone, res: G.res, physT: G.physT, frames, line: G.line ? Object.assign({}, G.line) : null, cmdDir: G.cmdDir, hold: CTL.holdDown, holdShown: holdShown(), holdId: CTL.holdId, stickId: CTL.stickId,
+      vy: p ? p.vy : null, vx: p ? p.vx : null, logHold: G.log && G.log.hold, mesh: W.ball.position.toArray().map(v => +v.toFixed(3)), meshVis: W.ball.visible }; },
     settings(o) { if (o) { Object.assign(S, o); saveSettings(); } return Object.assign({}, S); },
     log: () => allShots(),
     timeScale(v) { if (v > 0) TS = v; return TS; },
