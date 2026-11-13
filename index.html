@@ -152,7 +152,7 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
     <div class="set"><label>Turn the controller with the phone<small>off: the stick alone drives</small></label><div class="seg" data-k="phoneTurn"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
     <div class="set"><label>Start board<small>1-39, counted from the right; 20 = centre</small></label><div class="num" data-k="board" data-min="1" data-max="39" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set"><label>Ball start<small>metres before the foul line</small></label><div class="num" data-k="ballStart" data-min="1.5" data-max="3.6" data-step="0.1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
-    <div class="set"><label>Walk up with the ball<small>you follow it up the approach, stop at the line</small></label><div class="seg" data-k="walk"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
+    <div class="set"><label>Walk up with the ball<small>you follow it to the foul line; “+ zoom” also closes the view in on the ball and pins</small></label><div class="seg" data-k="walk"><button data-v="zoom">+ zoom</button><button data-v="walk">Walk only</button></div></div>
     <div class="set" id="holdRow"><label>Hold button<small id="holdNote">works only with “Turn the controller with the phone” on</small></label><div class="seg" data-k="hold"><button data-v="off">Off</button><button data-v="left">Left</button><button data-v="right">Right</button></div></div>
     <div class="set" id="markerRow"><label>Pointing marker<small>where the phone points: the amber arrow</small></label><div class="seg" data-k="marker"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
     <div class="set" id="courseRow"><label>Course arrow<small>where the ball is being sent: the blue arrow</small></label><div class="seg" data-k="course"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
@@ -424,7 +424,8 @@ function frameFor(eyeS, bS, bX, w, h) {
 }
 function setCamera() {
   const cam = W.camera, r = W.renderer.domElement.getBoundingClientRect(), w = r.width || 390, h = r.height || 498;
-  const eyeS = W.eyeS != null ? W.eyeS : DIM.eyeS, b = W.frameBall || { s: DIM.startS, x: 0 }, fr = frameFor(eyeS, b.s, b.x, w, h); W.frame = fr;
+  const eyeS = W.eyeS != null ? W.eyeS : DIM.eyeS, b = W.frameBall || { s: DIM.startS, x: 0 }, fx = W.fixed;
+  const fr = fx ? frameFor(fx.eye, fx.s, fx.x, w, h) : frameFor(eyeS, b.s, b.x, w, h); W.frame = fr;
   cam.position.set(0, DIM.eyeH, -eyeS); cam.aspect = w / h; cam.fov = fr.vfov; cam.rotation.set(fr.pitch * Math.PI / 180, 0, 0);
   cam.updateProjectionMatrix(); cam.updateMatrixWorld(true);
 }
@@ -523,11 +524,12 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
 };
-const DEFAULTS = { scheme: "A", curvePct: 50, sensing: "ideal", phoneTurn: "off", board: 20, slope: 0.20, keeps: 4, hold: "off", marker: "on", course: "on", ballStart: 1.5, walk: "on", v: 2,
+const DEFAULTS = { scheme: "A", curvePct: 50, sensing: "ideal", phoneTurn: "off", board: 20, slope: 0.20, keeps: 4, hold: "off", marker: "on", course: "on", ballStart: 1.5, walk: "zoom", v: 2,
   padTurn: "on", padPanel: "hide", padX: 0, padY: 1, padFlip: "none", padTurnAx: 2, padStop: 0, padHold: 1, padRecenter: 2, padReset: 3, padNext: 4 };
 const STORED = store.get("rcbowl.settings", {}); if (STORED.v !== 2) { if (STORED.ballStart === 3.5) delete STORED.ballStart; STORED.v = 2; }
 delete STORED.nudge;
 delete STORED.curve;
+if (STORED.walk === "on" || STORED.walk === "off") delete STORED.walk;
 const S = Object.assign({}, DEFAULTS, STORED);
 const saveSettings = () => store.set("rcbowl.settings", S);
 const CTL = { mode: "strip", heading: 0, lastRaw: null, ref: 0, strip: 0, askedAt: 0, got: false, gotAt: 0, perm: null,
@@ -745,7 +747,7 @@ const G = { phase: "ready", ballNo: 1, pins1: 0, pins2: 0, p: null, prev: null, 
 const speed = () => G.p ? Math.hypot(G.p.vx, G.p.vy) : 0;
 const ballS = (p) => p.x - PL.APPROACH;
 function newBall() {
-  G.p = makePlant(PL.APPROACH - S.ballStart, boardX(S.board)); G.eyeS = G.eyeCmd = DIM.eyeBackS; G.gap = -S.ballStart - DIM.eyeBackS; G.prev = { x: G.p.x, y: G.p.y }; G.phase = "ready"; G.t = 0; G.tPush = null; G.line = null; G.stillT = 0; G.gut = null; G.entry = null; G.physT = 0;
+  G.p = makePlant(PL.APPROACH - S.ballStart, boardX(S.board)); G.eyeS = G.eyeCmd = DIM.eyeBackS; G.start = { eye: DIM.eyeBackS, s: -S.ballStart, x: boardX(S.board) }; G.gap = -S.ballStart - DIM.eyeBackS; G.prev = { x: G.p.x, y: G.p.y }; G.phase = "ready"; G.t = 0; G.tPush = null; G.line = null; G.stillT = 0; G.gut = null; G.entry = null; G.physT = 0;
   const r = G.rng; G.err = { near: 3.5 * gauss(r), far: 1.78 * gauss(r), ou: 1.6 * gauss(r) };
   G.log = { id: Date.now().toString(36) + Math.floor(G.rng() * 1e4).toString(36), time: new Date().toISOString(), ball: G.ballNo,
     set: logSet(),
@@ -961,7 +963,7 @@ function bindSettings() {
 }
 let PH = null, lastT = 0, acc = 0, frames = 0, TS = 1, PAUSED = false, NODRAW = false;
 function eyeTick(dt) {
-  if (S.walk !== "on" || !(dt > 0)) return;
+  if (!(dt > 0)) return;
   const want = Math.min(DIM.eyeStopS, ballWorld().s - G.gap); if (want > G.eyeCmd) G.eyeCmd = want;
   G.eyeS = Math.min(DIM.eyeStopS, G.eyeS + clamp((G.eyeCmd - G.eyeS) / DIM.walkTau, 0, DIM.walkVmax) * dt);
 }
@@ -984,6 +986,7 @@ function loop(ts) {
   }
   syncPins();
   eyeTick(dt); W.eyeS = G.eyeS;
+  W.fixed = S.walk === "walk" && G.start ? G.start : null;
   if (G.phase === "ready" || G.phase === "rolling" || G.phase === "gutter") { const bw = ballWorld(); W.frameBall = { s: Math.min(bw.s, DIM.headS), x: bw.x }; }
   setCamera();
   if (!NODRAW) W.renderer.render(W.scene, W.camera); updateHud(false); drawCourse();

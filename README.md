@@ -7,7 +7,7 @@ A phone web page for trying out the controls of a remote-controlled bowling ball
 ## How to drive
 
 1. Put a thumb anywhere on the bottom panel and push up. The stick's centre is exactly where your thumb lands, so a press by itself does nothing; its ring may run past the panel's edge. The ball travels in the direction the stick points, straight up being straight down the lane; how far you push sets how hard the ball pushes.
-2. You stand at the back of the approach and walk up behind the ball as far as the foul line.
+2. You stand at the back of the approach and walk up behind the ball as far as the foul line. **Walk up with the ball** has two ways: **+ zoom** (the default) also closes the view in on the ball and the pins as the ball goes; **Walk only** keeps the view's zoom and tilt from the start, so walking up shows as walking.
 3. After each ball a card shows where it hit, the entry angle, the speed, and what published USBC data says a hit like that strikes.
 4. **Reset** puts the same ball back at its start at any time.
 
