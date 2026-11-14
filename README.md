@@ -32,13 +32,13 @@ The gear button opens the settings: control scheme, one or two sticks and how th
 The simulator also reads a Bluetooth gamepad through the browser's Gamepad API, so that a hand-held controller can drive it on a big screen: a laptop running the page in Chrome, shown on a TV over HDMI. An iPhone cannot host such a controller (iOS accepts only console and MFi gamepads, and Safari has no Web Bluetooth).
 
 1. Pair the handset with the computer (Windows: Settings > Bluetooth & devices > Add device), open the page in Chrome, and press any button on the handset; Chrome shows a gamepad to a page only after a button press.
-2. While a handset is connected the touch panel is hidden, the lane view fills the screen, the text is sized for a TV, and the handset's stick and its STOP and HOLD keys are drawn in the lower left corner.
+2. While a handset is connected the touch panel is hidden, the lane view fills the screen, the text is sized for a TV, and the handset's sticks and its STOP and LOCK (or HOLD) keys are drawn in the lower left corner.
 3. The stick drives exactly as the touch stick does. The handset's own turn (its gyro) turns the controller, as the phone does with phone turning on.
 4. **STOP** brakes the ball while it is held, as hard as the lane's grip allows; on the result card it takes the next ball. **HOLD** means what the on-screen Hold button means (one stick); with two sticks the same key is **LOCK**. **Recenter** sets straight ahead to where the handset points now, and **Reset** puts the ball back.
 5. With **Sticks: Two**, a standard game controller (Xbox, PlayStation) drives with its left stick and makes small aims with its right stick. It cannot sense turning, so LOCK does not appear with it.
 6. **Settings > Handset** shows what the page sees of the handset: its axes and the buttons being pressed. **Setup** sets which axis and button does what, so a different gamepad works too.
 
-The stage-1 handset is a design of its own (a printed grip, an ESP32-S3 board, an IMU, a thumb-stick and four buttons, no soldering). Its firmware reports the stick on axes 1 and 2 and the turn on axis 3 (heading / 180°, positive to the right), and STOP, HOLD, Recenter, Reset and the stick's click on buttons 1 to 5. These are the page's defaults.
+The stage-1 handset is a design of its own: a printed two-handed shell, an ESP32-S3 board, an IMU, two thumb-sticks and four buttons, no soldering. Its firmware (2.0) reports the left stick on axes 1 and 2, the turn on axis 3 (heading / 180°, positive to the right) and the right stick's left–right on axis 4, and STOP, LOCK, Recenter, Reset and the two sticks' clicks on buttons 1 to 6. These are the page's defaults.
 
 ## Notes
 

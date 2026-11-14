@@ -190,7 +190,7 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
     <div class="set padAdv"><label>STOP<small>brakes while held; on the result card, the next ball</small></label><div class="num" data-k="padStop" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv padOne"><label>HOLD<small>one stick</small></label><div class="num" data-k="padHold" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv padTwo"><label>LOCK<small>two sticks: press to lock, press again to unlock</small></label><div class="num" data-k="padLock" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
-    <div class="set padAdv padTwo"><label>Precision stick left–right<small>auto: a standard controller's right stick</small></label><div class="num" data-k="padFineX" data-min="-1" data-max="9" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
+    <div class="set padAdv padTwo"><label>Precision stick left–right<small>auto: the right stick (a standard controller's, or the two-handed handset's axis 4)</small></label><div class="num" data-k="padFineX" data-min="-1" data-max="9" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv"><label>Recenter</label><div class="num" data-k="padRecenter" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv"><label>Reset</label><div class="num" data-k="padReset" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv"><label>Next ball<small>on the result card</small></label><div class="num" data-k="padNext" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
@@ -588,7 +588,7 @@ function drawCourse() {
 const PAD = { connected: false, id: "", mapping: "", axes: [], buttons: [], heading: 0, lastRaw: null, ref: 0, prev: [], stop: false, needCentre: false,
   setup: false, lastInfo: 0, broken: false, x: 0, y: 0 };
 const PAD_DEAD = 0.12;
-function padFineAx() { if (!twoSticks() || !PAD.connected) return -1; if (S.padFineX >= 0) return S.padFineX; return PAD.mapping === "standard" ? 2 : -1; }
+function padFineAx() { if (!twoSticks() || !PAD.connected) return -1; if (S.padFineX >= 0) return S.padFineX; if (PAD.mapping === "standard") return 2; return /RC Bowling/i.test(PAD.id) && PAD.axes.length >= 4 ? 3 : -1; }
 function padTurnOn() { return PAD.connected && S.padTurn === "on" && S.padTurnAx >= 0 && S.padTurnAx !== padFineAx(); }
 function turnLive() { return padTurnOn() || S.phoneTurn === "on"; }
 function pollPad() {
