@@ -185,7 +185,7 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
     <div class="set padSet"><label>Touch panel<small>while a handset is connected</small></label><div class="seg" data-k="padPanel"><button data-v="hide">Hide</button><button data-v="show">Show</button></div></div>
     <div class="set padAdv"><label>Stick left–right</label><div class="num" data-k="padX" data-min="0" data-max="9" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv"><label>Stick forward–back</label><div class="num" data-k="padY" data-min="0" data-max="9" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
-    <div class="set padAdv"><label>Flip the stick</label><div class="seg" data-k="padFlip"><button data-v="none">No</button><button data-v="x">L–R</button><button data-v="y">F–B</button><button data-v="both">Both</button></div></div>
+    <div class="set padAdv"><label>Flip the stick<small>L–R flips the precision stick too</small></label><div class="seg" data-k="padFlip"><button data-v="none">No</button><button data-v="x">L–R</button><button data-v="y">F–B</button><button data-v="both">Both</button></div></div>
     <div class="set padAdv"><label>Turn<small>the heading ÷ 180°, + = turned right</small></label><div class="num" data-k="padTurnAx" data-min="-1" data-max="9" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv"><label>STOP<small>brakes while held; on the result card, the next ball</small></label><div class="num" data-k="padStop" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv padOne"><label>HOLD<small>one stick</small></label><div class="num" data-k="padHold" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
@@ -608,7 +608,7 @@ function pollPad() {
   PAD.x = x; PAD.y = y; const m = Math.min(1, Math.hypot(x, y));
   if (PAD.needCentre && m <= PAD_DEAD) PAD.needCentre = false;
   if (CTL.stickId == null) { CTL.defl = PAD.needCentre || m <= PAD_DEAD ? 0 : (m - PAD_DEAD) / (1 - PAD_DEAD); if (CTL.defl > 0) CTL.theta = Math.atan2(x, -y) * 180 / Math.PI; }
-  const fa = padFineAx(); PAD.fx = fa >= 0 ? ax(fa) : 0;
+  const fa = padFineAx(); PAD.fx = fa >= 0 ? ax(fa) * (S.padFlip === "x" || S.padFlip === "both" ? -1 : 1) : 0;
   if (fa >= 0 && FINE.id == null) { const a = Math.abs(PAD.fx); FINE.v = a <= PAD_DEAD ? 0 : Math.sign(PAD.fx) * Math.min(1, (a - PAD_DEAD) / (1 - PAD_DEAD)); PAD.fineOwned = true; }
   else if (PAD.fineOwned && FINE.id == null) { FINE.v = 0; PAD.fineOwned = false; }
   const stop = bt(S.padStop); if (stop !== PAD.stop) { if (stop) stopDown(); else stopUp(); }
