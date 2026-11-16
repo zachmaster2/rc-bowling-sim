@@ -38,7 +38,7 @@ The simulator also reads a Bluetooth gamepad through the browser's Gamepad API, 
 5. With **Sticks: Two**, a standard game controller (Xbox, PlayStation) drives with its left stick and makes small aims with its right stick. It cannot sense turning, so LOCK does not appear with it.
 6. **Settings > Controller** shows what the page sees of it: its axes and the buttons being pressed. **Setup** sets which axis and button does what, so a different gamepad works too.
 
-The stage-1 controller is a design of its own: a printed two-handed shell laid out like an Xbox 360 controller, an ESP32-S3 board, an IMU, two thumb-sticks and four buttons, no soldering. Its firmware (2.2) reports the left stick on axes 1 and 2, the turn on axis 3 (heading / 180°, positive to the right) and the right stick's left–right on axis 4, and STOP, LOCK, Recenter, Reset and the two sticks' clicks on buttons 1 to 6. These are the page's defaults.
+The stage-1 controller is a design of its own: a printed two-handed shell laid out like an Xbox 360 controller, an ESP32-S3 board, an IMU, two thumb-sticks and four buttons, no soldering. Its firmware (2.3) reports the left stick on axes 1 and 2, the turn on axis 3 (heading / 180°, positive to the right) and the right stick's left–right on axis 4, and STOP, LOCK, Recenter and Reset on buttons 1 to 4. The sticks only move: pressing one down is not reported. These are the page's defaults.
 
 ## Notes
 
