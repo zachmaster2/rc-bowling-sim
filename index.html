@@ -43,7 +43,7 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
 #holdBtn.left{left:var(--gut-l)} #holdBtn.right{right:var(--gut-r)}
 #holdBtn b{font-size:14px;font-weight:700;letter-spacing:.06em} #holdBtn span{font-size:9.5px;color:var(--ink-dim);pointer-events:none}
 #holdBtn.on{background:var(--accent);color:var(--accent-ink)} #holdBtn.on span{color:var(--accent-ink)}
-/* the handset (13 Nov): its stick and keys in the view's corner; with it connected the touch panel can go and the HUD is sized for a TV across the room */
+/* the controller (13 Nov): its stick and keys in the view's corner; with it connected the touch panel can go and the HUD is sized for a TV across the room */
 #padHud{position:absolute;left:var(--gut-l);bottom:16px;display:flex;align-items:center;gap:12px;pointer-events:none;z-index:1}
 #padRing{position:relative;width:84px;height:84px;border-radius:50%;border:2px solid var(--stick-ring);background:rgba(10,11,14,.45)}
 #padRing.live{border-color:var(--accent)}
@@ -181,9 +181,9 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
     <div class="set" id="holdRow"><label>Hold button<small id="holdNote">works only with “Turn the controller with the phone” on</small></label><div class="seg" data-k="hold"><button data-v="off">Off</button><button data-v="left">Left</button><button data-v="right">Right</button></div></div>
     <div class="set" id="markerRow"><label>Pointing marker<small>where the phone points: the amber arrow</small></label><div class="seg" data-k="marker"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
     <div class="set" id="courseRow"><label>Course arrow<small>where the ball is being sent: the blue arrow</small></label><div class="seg" data-k="course"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
-    <div class="set" id="padRow"><label>Handset<small id="padNote">none connected</small><small id="padLive" class="mono"></small></label><button class="pill" id="padSetupBtn">Setup…</button></div>
-    <div class="set padSet"><label>Turn the controller with the handset<small>its gyro turns it; the phone's turn is not used</small></label><div class="seg" data-k="padTurn"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
-    <div class="set padSet"><label>Touch panel<small>while a handset is connected</small></label><div class="seg" data-k="padPanel"><button data-v="hide">Hide</button><button data-v="show">Show</button></div></div>
+    <div class="set" id="padRow"><label>Controller<small id="padNote">none connected</small><small id="padLive" class="mono"></small></label><button class="pill" id="padSetupBtn">Setup…</button></div>
+    <div class="set padSet"><label>Turn with the controller itself<small>its own gyro turns it; the phone's turn is not used</small></label><div class="seg" data-k="padTurn"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
+    <div class="set padSet"><label>Touch panel<small>while a controller is connected</small></label><div class="seg" data-k="padPanel"><button data-v="hide">Hide</button><button data-v="show">Show</button></div></div>
     <div class="set padAdv"><label>Stick left–right</label><div class="num" data-k="padX" data-min="0" data-max="9" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv"><label>Stick forward–back</label><div class="num" data-k="padY" data-min="0" data-max="9" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv"><label>Flip the stick<small>L–R flips the precision stick too</small></label><div class="seg" data-k="padFlip"><button data-v="none">No</button><button data-v="x">L–R</button><button data-v="y">F–B</button><button data-v="both">Both</button></div></div>
@@ -191,7 +191,7 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
     <div class="set padAdv"><label>STOP<small>brakes while held; on the result card, the next ball</small></label><div class="num" data-k="padStop" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv padOne"><label>HOLD<small>one stick</small></label><div class="num" data-k="padHold" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv padTwo"><label>LOCK<small>two sticks: press to lock, press again to unlock</small></label><div class="num" data-k="padLock" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
-    <div class="set padAdv padTwo"><label>Precision stick left–right<small>auto: the right stick (a standard controller's, or the two-handed handset's axis 4)</small></label><div class="num" data-k="padFineX" data-min="-1" data-max="9" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
+    <div class="set padAdv padTwo"><label>Precision stick left–right<small>auto: the right stick (a standard gamepad's, or the RC Bowling controller's axis 4)</small></label><div class="num" data-k="padFineX" data-min="-1" data-max="9" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv"><label>Recenter</label><div class="num" data-k="padRecenter" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv"><label>Reset</label><div class="num" data-k="padReset" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv"><label>Next ball<small>on the result card</small></label><div class="num" data-k="padNext" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
@@ -688,7 +688,7 @@ function askMotion() {
     } catch (e) { setMode("strip"); }
   } else if (!CTL.got) listenMotion();
 }
-function setMode(m) { CTL.mode = m; $("strip").hidden = m !== "strip" || S.phoneTurn !== "on" || padTurnOn(); $("src").textContent = m === "motion" ? "Motion" : "Strip"; $("hSrc").textContent = "· " + (padTurnOn() ? "Handset" : m === "motion" ? "Motion" : "Strip"); drawStrip(); }
+function setMode(m) { CTL.mode = m; $("strip").hidden = m !== "strip" || S.phoneTurn !== "on" || padTurnOn(); $("src").textContent = m === "motion" ? "Motion" : "Strip"; $("hSrc").textContent = "· " + (padTurnOn() ? "Controller" : m === "motion" ? "Motion" : "Strip"); drawStrip(); }
 function applyTurn() {
   const on = S.phoneTurn === "on";
   CTL.strip = 0; CTL.ref = CTL.heading;
@@ -704,7 +704,7 @@ function turnUi() {
   const ph = S.phoneTurn === "on", pt = padTurnOn(), live = ph || pt;
   $("app").classList.toggle("turning", live);
   $("recenter").hidden = !live; $("src").hidden = !ph || pt; $("hAim").hidden = !live; $("hSrc").hidden = !live;
-  $("hSrc").textContent = "· " + (pt ? "Handset" : CTL.mode === "motion" ? "Motion" : "Strip");
+  $("hSrc").textContent = "· " + (pt ? "Controller" : CTL.mode === "motion" ? "Motion" : "Strip");
   $("strip").hidden = pt || !ph || CTL.mode !== "strip"; if (pt) $("prompt").hidden = true;
   drawStrip(); applyHold(); applyLock(); updateHud(true);
 }
@@ -844,7 +844,7 @@ function newBall() {
   W.ball.visible = true; placeBallMesh(G.p.x, G.p.y, 0, true); applyLock();
 }
 function logSet() { return { scheme: S.scheme, curvePct: S.curvePct, slope: S.slope, keeps: S.keeps, hold: S.hold, course: S.course, sensing: S.sensing, phoneTurn: S.phoneTurn, board: S.board, ballStart: S.ballStart, walk: S.walk,
-  input: PAD.connected ? "handset" : "touch", padTurn: padTurnOn() ? "on" : "off", sticks: S.sticks, band: S.band, fineMode: S.fineMode, fineRange: S.fineRange, ringFollow: S.ringFollow }; }
+  input: PAD.connected ? "controller" : "touch", padTurn: padTurnOn() ? "on" : "off", sticks: S.sticks, band: S.band, fineMode: S.fineMode, fineRange: S.fineRange, ringFollow: S.ringFollow }; }
 function startPush() { G.phase = "rolling"; G.tPush = G.t; G.log.set = logSet(); }
 function newFrame() { G.ballNo = 1; G.pins1 = 0; G.pins2 = 0; G.frameDone = false; PH.resetAll(); newBall(); updateHud(true); }
 function sensErr(dt) {
@@ -958,7 +958,7 @@ function showCard(r, prevDown) {
   } else if (r.gutter) rows += row("Speed", `${(r.v || 0).toFixed(2)} m/s`);
   if (r.ball === 2 || G.frameDone) rows += row("Frame", G.pins1 === 10 ? "X (strike)" : (G.pins1 + G.pins2 === 10 ? `${G.pins1} / (spare)` : `${G.pins1} + ${G.pins2} = ${G.pins1 + G.pins2}`));
   const chart = (!r.gutter && !r.reset && r.chart != null) ? `<div class="chart">USBC chart: a hit like this strikes <b>${Math.round(r.chart * 100)} %</b><br><span style="color:var(--ink-dim);font-size:11px">${Math.abs(r.off_in).toFixed(1)} in from centre at ${Math.max(0, r.entry_deg).toFixed(1)}° (Stremmel, Entry Angle Fig. 1; no speed term). The pins above are the physics.</span></div>` : "";
-  const hint = PAD.connected ? `<span class="padhint">or press STOP on the handset</span>` : "";
+  const hint = PAD.connected ? `<span class="padhint">or press STOP on the controller</span>` : "";
   c.innerHTML = `<h2>${title}</h2>${rows}${chart}<div class="acts">${hint}<button class="pill primary" id="nextBtn">${G.frameDone ? "New frame" : "Ball 2"}</button></div>`;
   c.hidden = false; $("nextBtn").addEventListener("click", nextBall);
 }
@@ -1020,7 +1020,7 @@ function bindSettings() {
     $("sticksNote").textContent = !two ? "one stick, with its curve and the Hold button" : turnLive() ? "left: drive · right: small aims · LOCK freezes where you point" : "left: drive · right: small aims · LOCK shows when the controller turns";
     $("curveNote").textContent = `10° of stick → ${stickCurveK(10, S.curvePct / 100).toFixed(1)}° of course; 0% none, 100% the strongest`;
     $("schemeNote").textContent = B ? "It holds its line — lean the stick to move it over" : "Point the phone, push the stick";
-    $("holdNote").textContent = padTurnOn() ? (B ? "hidden while the handset turns: its HOLD key swings the line with the turn; let go: the line stays" : "hidden while the handset turns: its HOLD key locks where it points; let go: it follows the turn again")
+    $("holdNote").textContent = padTurnOn() ? (B ? "hidden while the controller itself turns: its HOLD key swings the line with the turn; let go: the line stays" : "hidden while the controller itself turns: its HOLD key locks where it points; let go: it follows the turn again")
       : S.phoneTurn !== "on" ? "works only with “Turn the controller with the phone” on"
       : B ? "hold: turning the phone swings the line; let go: the line stays" : "hold: locks where it points; let go: it follows the phone again";
     $("markerRow").hidden = !turnLive(); $("followRow").hidden = PAD.connected && S.padPanel === "hide";

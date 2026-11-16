@@ -17,7 +17,7 @@ The gear button opens the settings: control scheme, one or two sticks and how th
 
 - **Main stick centre** (±10° by default): within this angle of straight up the main stick drives straight; from twice the angle it is one for one, with a smooth blend between. 0 makes it one for one everywhere.
 - **Precision stick:** **Offset** (the default) aims while you hold it and springs back to straight when you let go; **Nudge** moves the aim while you hold it and the aim stays where you leave it (each new ball starts straight again). **Precision range** sets how far (Offset, ±5° by default) or how fast (Nudge, 5° a second) full left or right moves the aim.
-- **LOCK** (between the sticks) appears whenever something turns the controller: the phone with **Turn the controller with the phone** on, or the handset. Press it and the pointing direction is frozen where it was: turning no longer steers, only the sticks do. Press it again to steer by pointing again. Every new ball, and Reset, starts unlocked, so the first push always goes where you point. While it is on, the button is lit and the top bar says LOCKED; the blue course arrow stays put while the amber pointing marker follows the phone.
+- **LOCK** (between the sticks) appears whenever the pointing direction can turn: with **Turn the controller with the phone** on, or with the RC Bowling controller connected. Press it and the pointing direction is frozen where it was: turning no longer steers, only the sticks do. Press it again to steer by pointing again. Every new ball, and Reset, starts unlocked, so the first push always goes where you point. While it is on, the button is lit and the top bar says LOCKED; the blue course arrow stays put while the amber pointing marker follows the phone.
 - **Sticks: One** brings back the earlier controls for comparison: one stick with its **Stick curve**, and the **Hold button**. The shot log records which controls each ball was driven with.
 
 ## The two control schemes
@@ -27,18 +27,18 @@ The gear button opens the settings: control scheme, one or two sticks and how th
 - **Hold button** (one stick; off by default; choosing a side turns phone turning on, which it needs): a button for the other thumb, at the left or right of the lane view. Under A, holding it locks where the controller points and letting go jumps back to where the phone points. Under B, holding it lets the phone swing the line and letting go leaves the line where it is.
 - **Course arrow** (on by default): the blue arrow at the foot of the lane view shows where the ball is being sent right now: under A the aim (HOLD's or LOCK's frozen aim while it is on) turned by the stick through the curve, or with two sticks through the main stick's centre band plus the precision stick; under B the held line with its lean. The amber **pointing marker** beside it (with phone turning on) shows where the phone points, so HOLD and B's held line show as the two arrows parting.
 
-## Driving it with a handset, on a TV
+## Driving it with the controller, on a TV
 
 The simulator also reads a Bluetooth gamepad through the browser's Gamepad API, so that a hand-held controller can drive it on a big screen: a laptop running the page in Chrome, shown on a TV over HDMI. An iPhone cannot host such a controller (iOS accepts only console and MFi gamepads, and Safari has no Web Bluetooth).
 
-1. Pair the handset with the computer (Windows: Settings > Bluetooth & devices > Add device), open the page in Chrome, and press any button on the handset; Chrome shows a gamepad to a page only after a button press.
-2. While a handset is connected the touch panel is hidden, the lane view fills the screen, the text is sized for a TV, and the handset's sticks and its STOP and LOCK (or HOLD) keys are drawn in the lower left corner.
-3. The stick drives exactly as the touch stick does. The handset's own turn (its gyro) turns the controller, as the phone does with phone turning on.
-4. **STOP** brakes the ball while it is held, as hard as the lane's grip allows; on the result card it takes the next ball. **HOLD** means what the on-screen Hold button means (one stick); with two sticks the same key is **LOCK**. **Recenter** sets straight ahead to where the handset points now, and **Reset** puts the ball back.
+1. Pair the controller with the computer (Windows: Settings > Bluetooth & devices > Add device; it appears as "RC Bowling Controller"), open the page in Chrome, and press any button on it; Chrome shows a gamepad to a page only after a button press.
+2. While a controller is connected the touch panel is hidden, the lane view fills the screen, the text is sized for a TV, and its sticks and its STOP and LOCK (or HOLD) keys are drawn in the lower left corner.
+3. The stick drives exactly as the touch stick does. The controller's own turn (its gyro) sets the pointing direction, as the phone does with phone turning on.
+4. **STOP** brakes the ball while it is held, as hard as the lane's grip allows; on the result card it takes the next ball. **HOLD** means what the on-screen Hold button means (one stick); with two sticks the same key is **LOCK**. **Recenter** sets straight ahead to where the controller points now, and **Reset** puts the ball back.
 5. With **Sticks: Two**, a standard game controller (Xbox, PlayStation) drives with its left stick and makes small aims with its right stick. It cannot sense turning, so LOCK does not appear with it.
-6. **Settings > Handset** shows what the page sees of the handset: its axes and the buttons being pressed. **Setup** sets which axis and button does what, so a different gamepad works too.
+6. **Settings > Controller** shows what the page sees of it: its axes and the buttons being pressed. **Setup** sets which axis and button does what, so a different gamepad works too.
 
-The stage-1 handset is a design of its own: a printed two-handed shell, an ESP32-S3 board, an IMU, two thumb-sticks and four buttons, no soldering. Its firmware (2.0) reports the left stick on axes 1 and 2, the turn on axis 3 (heading / 180°, positive to the right) and the right stick's left–right on axis 4, and STOP, LOCK, Recenter, Reset and the two sticks' clicks on buttons 1 to 6. These are the page's defaults.
+The stage-1 controller is a design of its own: a printed two-handed shell laid out like an Xbox 360 controller, an ESP32-S3 board, an IMU, two thumb-sticks and four buttons, no soldering. Its firmware (2.2) reports the left stick on axes 1 and 2, the turn on axis 3 (heading / 180°, positive to the right) and the right stick's left–right on axis 4, and STOP, LOCK, Recenter, Reset and the two sticks' clicks on buttons 1 to 6. These are the page's defaults.
 
 ## Notes
 
