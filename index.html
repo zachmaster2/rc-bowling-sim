@@ -166,6 +166,8 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
     <h3>Settings <button class="pill" id="sheetClose">Done</button></h3>
     <div class="set"><label>Scheme<small id="schemeNote">Point the phone, push the stick</small></label><div class="seg" data-k="scheme"><button data-v="A">A Point+push</button><button data-v="B">B Hold line</button></div></div>
     <div class="set" id="sticksRow"><label>Sticks<small id="sticksNote">left: drive · right: small aims</small></label><div class="seg" data-k="sticks"><button data-v="two">Two</button><button data-v="one">One</button></div></div>
+    <div class="set" id="turnRow"><label>Changing direction<small>Direct: pushed ahead or to the side, the ball turns onto your push at full thrust and keeps its speed; pushed back against its roll, it slows on its own line, then goes where you push · As before: it first cancels its speed across your push (it brakes for a side push and swings to the far side for a back push)</small></label><div class="seg" data-k="turnLaw"><button data-v="direct">Direct</button><button data-v="old">As before</button></div></div>
+    <div class="set" id="pullRow"><label>Pulling back<small>Past centre: the stick reads from the circle’s centre to your thumb · At once: after a long push, pulling back turns the stick round straight away (the knob leaves your thumb)</small></label><div class="seg" data-k="pullBack"><button data-v="centre">Past centre</button><button data-v="atonce">At once</button></div></div>
     <div class="set" id="bandRow"><label>Main stick centre<small>within this of straight up the main stick drives straight; one for one again from twice it</small></label><div class="num" data-k="band" data-min="0" data-max="20" data-step="2"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set" id="fineModeRow"><label>Precision stick<small>Offset: aims while held, springs back · Nudge: moves the aim and it stays</small></label><div class="seg" data-k="fineMode"><button data-v="offset">Offset</button><button data-v="nudge">Nudge</button></div></div>
     <div class="set" id="fineRangeRow"><label>Precision range<small id="fineRangeNote">how far full left or right moves the aim</small></label><div class="num" data-k="fineRange" data-min="1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
@@ -238,6 +240,25 @@ const PL = { G: 9.81, A_DRIVE: 0.8899, APPROACH: 4.57, OIL: 12.20, LANE: 18.12, 
   SLIP: 0.03, DV: 0.005, TAU: 0.4, T_SOLVE: 0.3 };
 function grip(x) { return (x < PL.APPROACH ? PL.MU[0] : x < PL.APPROACH + PL.OIL ? PL.MU[1] : PL.MU[2]) * PL.G; }
 function makePlant(x0, y0) { return { x: x0 || 0, y: y0 || 0, vx: 0, vy: 0, ax: 0, ay: 0, jx: 0, jy: 0 }; }
+const TURN_BLEND = 20;
+function travelCmd(vx, vy, ux, uy, A, turn) {
+  const vpar = vx * ux + vy * uy, vperp = -vx * uy + vy * ux, vm = Math.hypot(vx, vy);
+  if (turn === "old") {
+    const aperp = -Math.max(-A, Math.min(A, vperp / PL.TAU)), apar = Math.sqrt(Math.max(A * A - aperp * aperp, 0));
+    return [apar * ux - aperp * uy, apar * uy + aperp * ux];
+  }
+  if (vm < 1e-9) return [A * ux, A * uy];
+  const hx = vx / vm, hy = vy / vm, cd = vpar / vm, sd = -ux * hy + uy * hx;
+  const sg = sd >= 0 ? 1 : -1, tx = -sg * hy, ty = sg * hx;
+  let kx, ky, m;
+  if (cd >= 0) { m = Math.min(A, vm * Math.abs(sd) / PL.TAU); kx = m * tx; ky = m * ty; }
+  else {
+    const d = Math.acos(Math.max(-1, cd)) * 180 / Math.PI, b = smooth(0, 1, (d - 90) / TURN_BLEND) * Math.PI / 2;
+    m = Math.min(A, vm / PL.TAU); kx = m * (Math.cos(b) * tx - Math.sin(b) * hx); ky = m * (Math.cos(b) * ty - Math.sin(b) * hy);
+  }
+  const ku = kx * ux + ky * uy, s = -ku + Math.sqrt(Math.max(ku * ku + A * A - m * m, 0));
+  return [kx + s * ux, ky + s * uy];
+}
 function plantStep(p, c) {
   const DT = PL.DT, fwd = c.dir * Math.PI / 180, ux = Math.cos(fwd), uy = Math.sin(fwd), mug = grip(p.x);
   let cx = 0, cy = 0;
@@ -246,9 +267,7 @@ function plantStep(p, c) {
     let an = Math.hypot(p.ax, p.ay) + 1e-12; const slipping = (mug < PL.A_DRIVE - 1e-9) && (an > 0.98 * mug);
     const nx = c.dvNoise ? c.dvNoise() : 0, ny = c.dvNoise ? c.dvNoise() : 0;
     const vox = p.vx + (slipping ? PL.SLIP * p.ax / an : 0) + nx, voy = p.vy + (slipping ? PL.SLIP * p.ay / an : 0) + ny;
-    const vperp = -vox * uy + voy * ux;
-    const aperp = -Math.max(-A, Math.min(A, vperp / PL.TAU)), apar = Math.sqrt(Math.max(A * A - aperp * aperp, 0));
-    cx = apar * ux - aperp * uy; cy = apar * uy + aperp * ux;
+    const cc = travelCmd(vox, voy, ux, uy, A, c.turn); cx = cc[0]; cy = cc[1];
   }
   const W2 = PL.WN * PL.WN, Z2 = 2 * PL.ZETA * PL.WN;
   p.jx += DT * (W2 * (cx - p.ax) - Z2 * p.jx); p.jy += DT * (W2 * (cy - p.ay) - Z2 * p.jy); p.ax += DT * p.jx; p.ay += DT * p.jy;
@@ -264,7 +283,7 @@ function plantRun(o) {
     const t = (k + 1) * PL.DT; const turned = o.turn_x != null && p.x >= o.turn_x;
     if (k === 10) tRel = t + PL.T_SOLVE;
     const x0 = p.x, y0 = p.y, v0 = Math.hypot(p.vx, p.vy);
-    plantStep(p, { dir: turned ? o.turn_deg : 0, stick: o.stick, go: t >= tRel, law: "travel" });
+    plantStep(p, { dir: turned ? o.turn_deg : 0, stick: o.stick, go: t >= tRel, law: "travel", turn: "old" });
     const v = Math.hypot(p.vx, p.vy), crs = Math.atan2(p.vy, p.vx) * 180 / Math.PI;
     if (x0 < xf && p.x >= xf) { r.t_foul = t; r.v_foul = v0 + (xf - x0) / (p.x - x0) * (v - v0); }
     if (x0 < xp && p.x >= xp) { const f = (xp - x0) / Math.max(p.x - x0, 1e-9); r.t_pins = t; r.v_pins = v; r.y_pins = y0 + f * (p.y - y0); r.crs_pins = crs; }
@@ -553,7 +572,7 @@ const store = {
 };
 const DEFAULTS = { scheme: "A", curvePct: 50, sensing: "ideal", phoneTurn: "off", board: 20, slope: 0.20, keeps: 4, hold: "off", marker: "on", course: "on", ballStart: 1.5, walk: "zoom", v: 2,
   padTurn: "on", padPanel: "hide", padX: 0, padY: 1, padFlip: "none", padTurnAx: 2, padStop: 0, padHold: 1, padRecenter: 2, padReset: 3, padNext: 4,
-  sticks: "two", band: 10, fineMode: "offset", fineRange: 5, padFineX: -1, padLock: 1 };
+  sticks: "two", band: 10, fineMode: "offset", fineRange: 5, padFineX: -1, padLock: 1, turnLaw: "direct", pullBack: "centre" };
 const STORED = store.get("rcbowl.settings", {}); if (STORED.v !== 2) { if (STORED.ballStart === 3.5) delete STORED.ballStart; STORED.v = 2; }
 delete STORED.nudge;
 delete STORED.curve;
@@ -562,8 +581,8 @@ if (STORED.walk === "on" || STORED.walk === "off") delete STORED.walk;
 const S = Object.assign({}, DEFAULTS, STORED);
 const saveSettings = () => store.set("rcbowl.settings", S);
 const CTL = { mode: "strip", heading: 0, lastRaw: null, ref: 0, strip: 0, askedAt: 0, got: false, gotAt: 0, perm: null,
-  stickId: null, defl: 0, theta: 0, bx: 0, by: 0, holdId: null, holdDown: false, holdSrc: null, holdPsi: 0, holdPrev: 0, lock: false, lockPsi: 0 };
-const FINE = { id: null, bx: 0, by: 0, v: 0, trim: 0 }, FINE_MAX = 15, FINE_R = 56;
+  stickId: null, defl: 0, theta: 0, bx: 0, by: 0, sx: 0, sy: 0, holdId: null, holdDown: false, holdSrc: null, holdPsi: 0, holdPrev: 0, lock: false, lockPsi: 0 };
+const FINE = { id: null, bx: 0, by: 0, sx: 0, v: 0, trim: 0 }, FINE_MAX = 15, FINE_R = 56;
 function psiC() { if (padTurnOn()) return wrap180(PAD.heading - PAD.ref); if (S.phoneTurn !== "on") return 0; return CTL.mode === "motion" ? wrap180(CTL.heading - CTL.ref) : CTL.strip; }
 const twoSticks = () => S.sticks === "two";
 const holdShown = () => !twoSticks() && S.hold !== "off" && S.phoneTurn === "on" && !padTurnOn();
@@ -756,13 +775,14 @@ function bindFine() {
   const zone = $("zone2"), ring = $("ring2"), knob = $("knob2");
   const setKnob = (dx) => { knob.style.transform = `translate(${dx.toFixed(1)}px,0px)`; };
   const move = (px) => {
-    let dx = px - FINE.bx;
+    let dx = px - FINE.bx - FINE.sx;
+    if (Math.abs(dx) > FINE_R && S.pullBack === "atonce") FINE.sx += dx - Math.sign(dx) * FINE_R;
     dx = clamp(dx, -FINE_R, FINE_R); const m = Math.abs(dx) / FINE_R; setKnob(dx); FINE.v = m <= DEAD ? 0 : Math.sign(dx) * (m - DEAD) / (1 - DEAD);
   };
   zone.addEventListener("pointerdown", (e) => {
     if (FINE.id != null) return;
     FINE.id = e.pointerId; try { zone.setPointerCapture(e.pointerId); } catch (_) {}
-    FINE.bx = e.clientX; FINE.by = e.clientY; ring.style.left = FINE.bx + "px"; ring.style.top = FINE.by + "px"; ring.classList.add("on"); knob.classList.remove("home");
+    FINE.bx = e.clientX; FINE.by = e.clientY; FINE.sx = 0; ring.style.left = FINE.bx + "px"; ring.style.top = FINE.by + "px"; ring.classList.add("on"); knob.classList.remove("home");
     $("zone2Hint").hidden = true; move(e.clientX); e.preventDefault(); wake();
   });
   zone.addEventListener("pointermove", (e) => { if (e.pointerId !== FINE.id) return; move(e.clientX); });
@@ -804,13 +824,17 @@ function bindStick() {
   zone.addEventListener("pointerdown", (e) => {
     if (CTL.stickId != null) return;
     CTL.stickId = e.pointerId; try { zone.setPointerCapture(e.pointerId); } catch (_) {}
-    CTL.bx = e.clientX; CTL.by = e.clientY;
+    CTL.bx = e.clientX; CTL.by = e.clientY; CTL.sx = 0; CTL.sy = 0;
     ring.style.left = CTL.bx + "px"; ring.style.top = CTL.by + "px"; ring.classList.add("on"); knob.classList.remove("home");
     $("zoneHint").hidden = true; moveStick(e.clientX, e.clientY); e.preventDefault(); wake();
   });
   const moveStick = (px, py) => {
-    let dx = px - CTL.bx, dy = py - CTL.by; let d = Math.hypot(dx, dy);
-    if (d > RING_R) { dx *= RING_R / d; dy *= RING_R / d; }
+    let dx = px - CTL.bx - CTL.sx, dy = py - CTL.by - CTL.sy; let d = Math.hypot(dx, dy);
+    if (d > RING_R) {
+      const k = RING_R / d;
+      if (S.pullBack === "atonce") { CTL.sx += dx * (1 - k); CTL.sy += dy * (1 - k); }
+      dx *= k; dy *= k;
+    }
     setKnob(dx, dy); const m = Math.min(1, d / RING_R);
     CTL.defl = m <= DEAD ? 0 : (m - DEAD) / (1 - DEAD); CTL.theta = Math.atan2(dx, -dy) * 180 / Math.PI;
   };
@@ -839,7 +863,7 @@ function newBall() {
   W.ball.visible = true; placeBallMesh(G.p.x, G.p.y, 0, true); applyLock();
 }
 function logSet() { return { scheme: S.scheme, curvePct: S.curvePct, slope: S.slope, keeps: S.keeps, hold: S.hold, course: S.course, sensing: S.sensing, phoneTurn: S.phoneTurn, board: S.board, ballStart: S.ballStart, walk: S.walk,
-  input: PAD.connected ? "controller" : "touch", padTurn: padTurnOn() ? "on" : "off", sticks: S.sticks, band: S.band, fineMode: S.fineMode, fineRange: S.fineRange, ringFollow: "off" }; }
+  input: PAD.connected ? "controller" : "touch", padTurn: padTurnOn() ? "on" : "off", sticks: S.sticks, band: S.band, fineMode: S.fineMode, fineRange: S.fineRange, ringFollow: "off", turnLaw: S.turnLaw, pullBack: S.pullBack }; }
 function startPush() { G.phase = "rolling"; G.tPush = G.t; G.log.set = logSet(); }
 function newFrame() { G.ballNo = 1; G.pins1 = 0; G.pins2 = 0; G.frameDone = false; PH.resetAll(); newBall(); updateHud(true); }
 function sensErr(dt) {
@@ -880,6 +904,7 @@ function plantTick() {
     if (speed() < 0.05) { p.vx = p.vy = p.ax = p.ay = p.jx = p.jy = 0; cmd = { law: "travel", dir: 0, stick: 0, go: true }; }
     else cmd = { law: "travel", dir: Math.atan2(p.vy, p.vx) * 180 / Math.PI + 180, stick: 1, go: true };
   }
+  cmd.turn = S.turnLaw;
   G.prev = { x: p.x, y: p.y };
   plantStep(p, cmd);
   const s2 = ballS(p), xa = DIM.laneW / 2 + DIM.gutterW - DIM.ballR;
@@ -1094,13 +1119,13 @@ function init() {
   window.__sim = {
     project(x, y, z) { const v = new THREE.Vector3(x, y, z).project(W.camera), r = $("cv").getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height, z: v.z }; },
     cam() { const r = $("cv").getBoundingClientRect(), c = W.camera; return { fov: c.fov, pitch: c.rotation.x * 180 / Math.PI, yaw: -c.rotation.y * 180 / Math.PI, pos: [c.position.x, c.position.y, c.position.z], rect: { left: r.left, top: r.top, width: r.width, height: r.height }, dpr: W.renderer.getPixelRatio() }; },
-    dim: DIM, spots: PIN_SPOTS, boardX, plantRun, chart: CHART.chart, chartF: [CHART.F0, CHART.F1], pinTest, stickCurve, stickCurveK, bandMain, fineD, rfineD, hflatD, D27,
+    dim: DIM, spots: PIN_SPOTS, boardX, plantRun, travelCmd, makePlant, plantStep, PL, chart: CHART.chart, chartF: [CHART.F0, CHART.F1], pinTest, stickCurve, stickCurveK, bandMain, fineD, rfineD, hflatD, D27,
     runD(o) {
       o = Object.assign({ v0: 4, x0: PL.APPROACH + 2, defl: 1, script: [], T: 4 }, o || {}); const p = makePlant(o.x0, 0); p.vx = o.v0; const L = { psi0: 0, I: 0 }, out = [];
       const n = Math.round(o.T / PL.DT);
       for (let k = 0; k < n; k++) {
         const t = k * PL.DT; let th = 0, d = o.defl; for (const [a, b, ang, df] of o.script) if (t >= a - 1e-9 && t < b - 1e-9) { th = ang; d = df; }
-        const dir = dirD(L, th, d, 0, 0, PL.DT); plantStep(p, { law: "travel", dir, stick: d, go: true });
+        const dir = dirD(L, th, d, 0, 0, PL.DT); plantStep(p, { law: "travel", dir, stick: d, go: true, turn: o.turn || "old" });
         out.push([+(t + PL.DT).toFixed(2), th, d, dir, L.I, Math.atan2(p.vy, p.vx) * 180 / Math.PI, p.vy, Math.hypot(p.vx, p.vy)]);
       }
       return { cols: ["t", "stick_deg", "defl", "cmd_deg", "I_deg", "course_deg", "vy", "v"], rows: out };
@@ -1118,7 +1143,7 @@ function init() {
     setEye(s) { G.eyeS = G.eyeCmd = s; return s; },
     setBall(s, x) { G.p.x = s + PL.APPROACH; G.p.y = x || 0; G.prev = { x: G.p.x, y: G.p.y }; placeBallMesh(G.p.x, G.p.y, 0, true); return [s, x || 0]; },
     frame() { return Object.assign({}, W.frame); },
-    state() { const p = G.p; return { pins: PH.inPlay.map((v, i) => v ? (PH.pinDown(i) ? 'down' : 'up') : 'gone'), spotErr: Math.max(0, ...PH.pins.map((b, i) => PH.inPlay[i] ? Math.hypot(b.position.x - b.spot[0], -b.position.z - b.spot[1]) : 0)), cardOpen: !$("card").hidden, eyeS: G.eyeS, phase: G.phase, ball: G.ballNo, s: p ? ballS(p) : null, x: p ? p.y : null, v: speed(), psi: psiC(), mode: CTL.mode, defl: CTL.defl, theta: CTL.theta, bx: CTL.bx, by: CTL.by, frames, pins1: G.pins1, pins2: G.pins2, frameDone: G.frameDone, res: G.res, physT: G.physT, frames, line: G.line ? Object.assign({}, G.line) : null, cmdDir: G.cmdDir, hold: CTL.holdDown, holdShown: holdShown(), lock: CTL.lock, lockOn: lockOn(), lockShown: !$("lockBtn").hidden, fine: FINE.v, fineId: FINE.id, trim: FINE.trim, fineDeg: fineDeg(), logLock: G.log && G.log.lock ? G.log.lock.map((x) => x.slice()) : null, holdId: CTL.holdId, stickId: CTL.stickId,
+    state() { const p = G.p; return { pins: PH.inPlay.map((v, i) => v ? (PH.pinDown(i) ? 'down' : 'up') : 'gone'), spotErr: Math.max(0, ...PH.pins.map((b, i) => PH.inPlay[i] ? Math.hypot(b.position.x - b.spot[0], -b.position.z - b.spot[1]) : 0)), cardOpen: !$("card").hidden, eyeS: G.eyeS, phase: G.phase, ball: G.ballNo, s: p ? ballS(p) : null, x: p ? p.y : null, v: speed(), psi: psiC(), mode: CTL.mode, defl: CTL.defl, theta: CTL.theta, bx: CTL.bx, by: CTL.by, sx: CTL.sx, sy: CTL.sy, fineSx: FINE.sx, py: p ? p.y : 0, px: p ? p.x : 0, frames, pins1: G.pins1, pins2: G.pins2, frameDone: G.frameDone, res: G.res, physT: G.physT, frames, line: G.line ? Object.assign({}, G.line) : null, cmdDir: G.cmdDir, hold: CTL.holdDown, holdShown: holdShown(), lock: CTL.lock, lockOn: lockOn(), lockShown: !$("lockBtn").hidden, fine: FINE.v, fineId: FINE.id, trim: FINE.trim, fineDeg: fineDeg(), logLock: G.log && G.log.lock ? G.log.lock.map((x) => x.slice()) : null, holdId: CTL.holdId, stickId: CTL.stickId,
       vy: p ? p.vy : null, vx: p ? p.vx : null, logHold: G.log && G.log.hold, mesh: W.ball.position.toArray().map(v => +v.toFixed(3)), meshVis: W.ball.visible }; },
     settings(o) { if (o) { Object.assign(S, o); saveSettings(); } return Object.assign({}, S); },
     log: () => allShots(),
