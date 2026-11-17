@@ -125,7 +125,8 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
 #ring2{position:fixed;left:0;top:0;width:150px;height:46px;margin:-23px 0 0 -75px;border-radius:23px;border:2px solid var(--course);background:var(--stick-fill);
   pointer-events:none;opacity:0;transition:opacity .25s}
 #ring2.on{opacity:1;transition:opacity .05s}
-#ring2.round{width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%}   /* Precision stick shape > Round: a regular stick's ring, the same reach as the slider */
+#ring2.round{width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%}   /* the precision stick as a regular stick: the size of the main stick (his word, 17 Nov 16:45), its knob stopping on the ring */
+#ring2.round #knob2{width:46px;height:46px;margin:-23px 0 0 -23px}
 #knob2{position:absolute;left:50%;top:50%;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;background:var(--course);box-shadow:0 2px 8px rgba(0,0,0,.5)}
 #knob2.home{transition:transform .14s ease-out}
 #padRing2{position:relative;width:120px;height:40px;border-radius:20px;border:2px solid var(--stick-ring);background:rgba(10,11,14,.45)}
@@ -584,7 +585,7 @@ delete STORED.curve;
 delete STORED.ringFollow;
 if (STORED.walk === "on" || STORED.walk === "off") delete STORED.walk;
 const S = Object.assign({}, DEFAULTS, STORED);
-const FIXED = { sticks: "two", turnLaw: "direct", pullBack: "centre", scheme: "A", hold: "off", band: 0 };
+const FIXED = { sticks: "two", turnLaw: "direct", pullBack: "centre", scheme: "A", hold: "off", band: 0, fineMode: "offset", fineShape: "round" };
 const LEGACY = store.get("rcbowl.legacy", false) === true;
 if (!LEGACY) Object.assign(S, FIXED);
 const saveSettings = () => store.set("rcbowl.settings", S);
@@ -1075,7 +1076,7 @@ function bindSettings() {
     const two = twoSticks();
     $("slopeRow").hidden = !B; $("keepsRow").hidden = !B; $("curveRow").hidden = B || two; $("holdRow").hidden = two;
     $("bandRow").hidden = B || !two; $("fineModeRow").hidden = !two; $("fineRangeRow").hidden = !two; $("fineShapeRow").hidden = !two;
-    if (!LEGACY) for (const id of ["schemeRow", "sticksRow", "turnRow", "pullRow", "bandRow", "curveRow", "slopeRow", "keepsRow", "holdRow"]) $(id).hidden = true;
+    if (!LEGACY) for (const id of ["schemeRow", "sticksRow", "turnRow", "pullRow", "bandRow", "curveRow", "slopeRow", "keepsRow", "holdRow", "fineModeRow", "fineShapeRow"]) $(id).hidden = true;
     $("fineRangeNote").textContent = S.fineMode === "nudge" ? "how fast full left or right moves the aim (it stays where you leave it)" : "how far full left or right moves the aim (back to nothing when you let go)";
     $("sticksNote").textContent = !two ? "one stick, with its curve and the Hold button" : "left: drive · right: small aims - while the right thumb is down (a controller: the left trigger) the left stick is held as it is" + (turnLive() ? " · LOCK freezes where you point" : "");
     $("curveNote").textContent = `10° of stick → ${stickCurveK(10, S.curvePct / 100).toFixed(1)}° of course; 0% none, 100% the strongest`;
