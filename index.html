@@ -125,6 +125,7 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
 #ring2{position:fixed;left:0;top:0;width:150px;height:46px;margin:-23px 0 0 -75px;border-radius:23px;border:2px solid var(--course);background:var(--stick-fill);
   pointer-events:none;opacity:0;transition:opacity .25s}
 #ring2.on{opacity:1;transition:opacity .05s}
+#ring2.round{width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%}   /* Precision stick shape > Round: a regular stick's ring, the same reach as the slider */
 #knob2{position:absolute;left:50%;top:50%;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;background:var(--course);box-shadow:0 2px 8px rgba(0,0,0,.5)}
 #knob2.home{transition:transform .14s ease-out}
 #padRing2{position:relative;width:120px;height:40px;border-radius:20px;border:2px solid var(--stick-ring);background:rgba(10,11,14,.45)}
@@ -166,13 +167,14 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
   <div id="ring2"><div id="knob2"></div></div>
   <div id="sheet" hidden>
     <h3>Settings <button class="pill" id="sheetClose">Done</button></h3>
-    <div class="set"><label>Scheme<small id="schemeNote">Point the phone, push the stick</small></label><div class="seg" data-k="scheme"><button data-v="A">A Point+push</button><button data-v="B">B Hold line</button></div></div>
+    <div class="set" id="schemeRow"><label>Scheme<small id="schemeNote">Point the phone, push the stick</small></label><div class="seg" data-k="scheme"><button data-v="A">A Point+push</button><button data-v="B">B Hold line</button></div></div>
     <div class="set" id="sticksRow"><label>Sticks<small id="sticksNote">left: drive · right: small aims</small></label><div class="seg" data-k="sticks"><button data-v="two">Two</button><button data-v="one">One</button></div></div>
     <div class="set" id="turnRow"><label>Changing direction<small>Direct: pushed ahead or to the side, the ball turns onto your push at full thrust and keeps its speed; pushed back against its roll, it slows on its own line, then goes where you push · As before: it first cancels its speed across your push (it brakes for a side push and swings to the far side for a back push)</small></label><div class="seg" data-k="turnLaw"><button data-v="direct">Direct</button><button data-v="old">As before</button></div></div>
     <div class="set" id="pullRow"><label>Pulling back<small>Past centre: the stick reads from the circle’s centre to your thumb · At once: after a long push, pulling back turns the stick round straight away (the knob leaves your thumb)</small></label><div class="seg" data-k="pullBack"><button data-v="centre">Past centre</button><button data-v="atonce">At once</button></div></div>
     <div class="set" id="bandRow"><label>Main stick centre<small>within this of straight up the main stick drives straight; one for one again from twice it</small></label><div class="num" data-k="band" data-min="0" data-max="20" data-step="2"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set" id="fineModeRow"><label>Precision stick<small>Offset: aims while held, springs back · Nudge: moves the aim and it stays</small></label><div class="seg" data-k="fineMode"><button data-v="offset">Offset</button><button data-v="nudge">Nudge</button></div></div>
     <div class="set" id="fineRangeRow"><label>Precision range<small id="fineRangeNote">how far full left or right moves the aim</small></label><div class="num" data-k="fineRange" data-min="1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
+    <div class="set" id="fineShapeRow"><label>Precision stick shape<small>Slider: left–right only · Round: a regular stick; its up–down does nothing</small></label><div class="seg" data-k="fineShape"><button data-v="slider">Slider</button><button data-v="round">Round</button></div></div>
     <div class="set" id="curveRow"><label>Stick curve<small id="curveNote">softens the stick near straight ahead (±30°)</small></label><div class="num" data-k="curvePct" data-min="0" data-max="100" data-step="10"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set" id="slopeRow"><label>Lean slope<small>° of course per ° of lean, from 10° to 45° of lean</small></label><div class="num" data-k="slope" data-min="0.10" data-max="0.30" data-step="0.05"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set" id="keepsRow"><label>Line keeps a lean<small>a lean held this long is kept whole; never = mapping B</small></label><div class="num" data-k="keeps" data-vals="0,2,3,4,5,6,7,8"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
@@ -575,13 +577,16 @@ const store = {
 };
 const DEFAULTS = { scheme: "A", curvePct: 50, sensing: "ideal", phoneTurn: "off", board: 20, slope: 0.20, keeps: 4, hold: "off", marker: "on", course: "on", ballStart: 1.5, walk: "zoom", v: 2,
   padTurn: "on", padPanel: "hide", padX: 0, padY: 1, padFlip: "none", padTurnAx: 2, padStop: 0, padHold: 1, padRecenter: 2, padReset: 3, padNext: 4,
-  sticks: "two", band: 10, fineMode: "offset", fineRange: 5, padFineX: -1, padLock: 1, padTrig: 6, turnLaw: "direct", pullBack: "centre" };
+  sticks: "two", band: 10, fineMode: "offset", fineRange: 5, padFineX: -1, padLock: 1, padTrig: 6, turnLaw: "direct", pullBack: "centre", fineShape: "slider" };
 const STORED = store.get("rcbowl.settings", {}); if (STORED.v !== 2) { if (STORED.ballStart === 3.5) delete STORED.ballStart; STORED.v = 2; }
 delete STORED.nudge;
 delete STORED.curve;
 delete STORED.ringFollow;
 if (STORED.walk === "on" || STORED.walk === "off") delete STORED.walk;
 const S = Object.assign({}, DEFAULTS, STORED);
+const FIXED = { sticks: "two", turnLaw: "direct", pullBack: "centre", scheme: "A", hold: "off", band: 0 };
+const LEGACY = store.get("rcbowl.legacy", false) === true;
+if (!LEGACY) Object.assign(S, FIXED);
 const saveSettings = () => store.set("rcbowl.settings", S);
 const CTL = { mode: "strip", heading: 0, lastRaw: null, ref: 0, strip: 0, askedAt: 0, got: false, gotAt: 0, perm: null,
   stickId: null, defl: 0, theta: 0, bx: 0, by: 0, sx: 0, sy: 0, holdId: null, holdDown: false, holdSrc: null, holdPsi: 0, holdPrev: 0, lock: false, lockPsi: 0, grip: false, gripTheta: 0, gripDefl: 0, trig: {}, px: 0, py: 0 };
@@ -791,7 +796,7 @@ function applyLock() {
   const b = $("lockBtn"); b.hidden = !(twoSticks() && turnLive()); b.classList.toggle("on", lockOn());
 }
 function applySticks() {
-  const two = twoSticks(); $("app").classList.toggle("two", two); $("zone2").hidden = !two;
+  const two = twoSticks(); $("app").classList.toggle("two", two); $("zone2").hidden = !two; $("ring2").classList.toggle("round", S.fineShape === "round");
   $("zoneHint").textContent = two ? "Left thumb: push to drive" : "Put your thumb anywhere here — push to drive";
   if (!two) { FINE.v = 0; FINE.trim = 0; FINE.id = null; CTL.trig.fine = false; gripDrop(); $("ring2").classList.remove("on"); }
   if (two && CTL.holdDown) holdUp();
@@ -799,19 +804,24 @@ function applySticks() {
 }
 function bindFine() {
   const zone = $("zone2"), ring = $("ring2"), knob = $("knob2");
-  const setKnob = (dx) => { knob.style.transform = `translate(${dx.toFixed(1)}px,0px)`; };
-  const move = (px) => {
-    let dx = px - FINE.bx - FINE.sx;
-    if (Math.abs(dx) > FINE_R && S.pullBack === "atonce") FINE.sx += dx - Math.sign(dx) * FINE_R;
-    dx = clamp(dx, -FINE_R, FINE_R); const m = Math.abs(dx) / FINE_R; setKnob(dx); FINE.v = m <= DEAD ? 0 : Math.sign(dx) * (m - DEAD) / (1 - DEAD);
+  const setKnob = (dx, dy) => { knob.style.transform = `translate(${dx.toFixed(1)}px,${(dy || 0).toFixed(1)}px)`; };
+  const move = (px, py) => {
+    let dx = px - FINE.bx - FINE.sx, dy = 0;
+    if (S.fineShape === "round") {
+      dy = py - FINE.by; const d = Math.hypot(dx, dy); if (d > FINE_R) { dx *= FINE_R / d; dy *= FINE_R / d; }
+    } else {
+      if (Math.abs(dx) > FINE_R && S.pullBack === "atonce") FINE.sx += dx - Math.sign(dx) * FINE_R;
+      dx = clamp(dx, -FINE_R, FINE_R);
+    }
+    const m = Math.abs(dx) / FINE_R; setKnob(dx, dy); FINE.v = m <= DEAD ? 0 : Math.sign(dx) * (m - DEAD) / (1 - DEAD);
   };
   zone.addEventListener("pointerdown", (e) => {
     if (FINE.id != null) return;
     FINE.id = e.pointerId; try { zone.setPointerCapture(e.pointerId); } catch (_) {}
     FINE.bx = e.clientX; FINE.by = e.clientY; FINE.sx = 0; ring.style.left = FINE.bx + "px"; ring.style.top = FINE.by + "px"; ring.classList.add("on"); knob.classList.remove("home");
-    $("zone2Hint").hidden = true; move(e.clientX); e.preventDefault(); wake(); trigSet("fine", true);
+    $("zone2Hint").hidden = true; move(e.clientX, e.clientY); e.preventDefault(); wake(); trigSet("fine", true);
   });
-  zone.addEventListener("pointermove", (e) => { if (e.pointerId !== FINE.id) return; move(e.clientX); });
+  zone.addEventListener("pointermove", (e) => { if (e.pointerId !== FINE.id) return; move(e.clientX, e.clientY); });
   const end = (e) => { if (e.pointerId !== FINE.id) return; FINE.id = null; FINE.v = 0; knob.classList.add("home"); setKnob(0); ring.classList.remove("on"); trigSet("fine", false); };
   zone.addEventListener("pointerup", end); zone.addEventListener("pointercancel", end); zone.addEventListener("lostpointercapture", end);
   $("lockBtn").addEventListener("click", (e) => { e.preventDefault(); toggleLock(); });
@@ -891,7 +901,7 @@ function newBall() {
   W.ball.visible = true; placeBallMesh(G.p.x, G.p.y, 0, true); applyLock();
 }
 function logSet() { return { scheme: S.scheme, curvePct: S.curvePct, slope: S.slope, keeps: S.keeps, hold: S.hold, course: S.course, sensing: S.sensing, phoneTurn: S.phoneTurn, board: S.board, ballStart: S.ballStart, walk: S.walk,
-  input: PAD.connected ? "controller" : "touch", padTurn: padTurnOn() ? "on" : "off", sticks: S.sticks, band: S.band, fineMode: S.fineMode, fineRange: S.fineRange, ringFollow: "off", turnLaw: S.turnLaw, pullBack: S.pullBack }; }
+  input: PAD.connected ? "controller" : "touch", padTurn: padTurnOn() ? "on" : "off", sticks: S.sticks, band: S.band, fineMode: S.fineMode, fineRange: S.fineRange, fineShape: S.fineShape, ringFollow: "off", turnLaw: S.turnLaw, pullBack: S.pullBack }; }
 function startPush() { G.phase = "rolling"; G.tPush = G.t; G.log.set = logSet(); }
 function newFrame() { G.ballNo = 1; G.pins1 = 0; G.pins2 = 0; G.frameDone = false; PH.resetAll(); newBall(); updateHud(true); }
 function sensErr(dt) {
@@ -1064,7 +1074,8 @@ function bindSettings() {
     const B = S.scheme === "B";
     const two = twoSticks();
     $("slopeRow").hidden = !B; $("keepsRow").hidden = !B; $("curveRow").hidden = B || two; $("holdRow").hidden = two;
-    $("bandRow").hidden = B || !two; $("fineModeRow").hidden = !two; $("fineRangeRow").hidden = !two;
+    $("bandRow").hidden = B || !two; $("fineModeRow").hidden = !two; $("fineRangeRow").hidden = !two; $("fineShapeRow").hidden = !two;
+    if (!LEGACY) for (const id of ["schemeRow", "sticksRow", "turnRow", "pullRow", "bandRow", "curveRow", "slopeRow", "keepsRow", "holdRow"]) $(id).hidden = true;
     $("fineRangeNote").textContent = S.fineMode === "nudge" ? "how fast full left or right moves the aim (it stays where you leave it)" : "how far full left or right moves the aim (back to nothing when you let go)";
     $("sticksNote").textContent = !two ? "one stick, with its curve and the Hold button" : "left: drive · right: small aims - while the right thumb is down (a controller: the left trigger) the left stick is held as it is" + (turnLive() ? " · LOCK freezes where you point" : "");
     $("curveNote").textContent = `10° of stick → ${stickCurveK(10, S.curvePct / 100).toFixed(1)}° of course; 0% none, 100% the strongest`;
@@ -1074,7 +1085,7 @@ function bindSettings() {
       : B ? "hold: turning the phone swings the line; let go: the line stays" : "hold: locks where it points; let go: it follows the phone again";
     $("markerRow").hidden = !turnLive();
     sheet.querySelectorAll(".padSet").forEach((r) => { r.hidden = !PAD.connected && !PAD.setup; });
-    sheet.querySelectorAll(".padAdv").forEach((r) => { r.hidden = !PAD.setup || (r.classList.contains("padTwo") && !twoSticks()) || (r.classList.contains("padOne") && twoSticks()); });
+    sheet.querySelectorAll(".padAdv").forEach((r) => { r.hidden = !PAD.setup || (r.classList.contains("padTwo") && !twoSticks()) || (r.classList.contains("padOne") && (twoSticks() || !LEGACY)); });
     $("padSetupBtn").textContent = PAD.setup ? "Hide setup" : "Setup…"; padInfo(true);
     applyHold(); updateHud(true);
     $("logCount").textContent = `${allShots().length} balls kept`;
@@ -1084,7 +1095,7 @@ function bindSettings() {
     if (seg.dataset.k === "hold" && S.hold !== "off" && S.phoneTurn !== "on" && !padTurnOn()) {
       S.phoneTurn = "on"; saveSettings(); applyTurn(); paint(); $("sheetMsg").textContent = "HOLD needs the phone's turn, so “Turn the controller with the phone” is now on."; }
     if (seg.dataset.k === "padTurn" || seg.dataset.k === "padPanel") { applyPad(); paint(); }
-    if (seg.dataset.k === "sticks" || seg.dataset.k === "fineMode") { FINE.trim = 0; applySticks(); applyPad(); paint(); } }));
+    if (seg.dataset.k === "sticks" || seg.dataset.k === "fineMode" || seg.dataset.k === "fineShape") { FINE.trim = 0; applySticks(); applyPad(); paint(); } }));
   sheet.querySelectorAll(".num").forEach((n) => n.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; const k = n.dataset.k, st = +n.dataset.step;
     if (n.dataset.vals) { const vals = n.dataset.vals.split(",").map(Number); let i = vals.indexOf(+S[k]); if (i < 0) i = vals.indexOf(DEFAULTS[k]); S[k] = vals[clamp(i + +b.dataset.d, 0, vals.length - 1)]; }
     else S[k] = +clamp(+S[k] + st * +b.dataset.d, +n.dataset.min, +n.dataset.max).toFixed(2);
