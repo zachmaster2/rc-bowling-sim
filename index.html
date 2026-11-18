@@ -903,7 +903,7 @@ function showCard(r, prevDown) {
   const chart = (!r.gutter && !r.reset && r.chart != null) ? `<div class="chart">USBC chart: a hit like this strikes <b>${Math.round(r.chart * 100)} %</b><br><span style="color:var(--ink-dim);font-size:11px">${Math.abs(r.off_in).toFixed(1)} in from centre at ${Math.max(0, r.entry_deg).toFixed(1)}° (Stremmel, Entry Angle Fig. 1; no speed term). The pins above are the physics.</span></div>` : "";
   const hint = PAD.connected ? `<span class="padhint">or press STOP on the controller</span>` : "";
   c.innerHTML = `<h2>${title}</h2>${rows}${chart}<div class="acts">${hint}<button class="pill primary" id="nextBtn">${G.frameDone ? "New frame" : "Ball 2"}</button></div>`;
-  c.hidden = false; $("nextBtn").addEventListener("click", nextBall);
+  c.hidden = false; bindBtn($("nextBtn"), nextBall);
 }
 let DB = null;
 function saveShot(rec) {
