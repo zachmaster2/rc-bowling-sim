@@ -713,6 +713,12 @@ function applyLock() {
   if (CTL.lock && !turnLive()) unlock();
   const b = $("lockBtn"); b.hidden = !turnLive(); b.classList.toggle("on", lockOn());
 }
+function bindBtn(el, fn, atOnce) {
+  const on = (t) => { const r = el.getBoundingClientRect(); return t.clientX >= r.left && t.clientX <= r.right && t.clientY >= r.top && t.clientY <= r.bottom; };
+  if (atOnce) el.addEventListener("touchstart", (e) => { e.preventDefault(); fn(); }, { passive: false });
+  el.addEventListener("touchend", (e) => { e.preventDefault(); if (!atOnce && on(e.changedTouches[0])) fn(); }, { passive: false });
+  el.addEventListener("click", (e) => { e.preventDefault(); fn(); });
+}
 function bindFine() {
   const zone = $("zone2"), ring = $("ring2"), knob = $("knob2");
   const setKnob = (dx, dy) => { knob.style.transform = `translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px)`; };
@@ -729,7 +735,6 @@ function bindFine() {
   zone.addEventListener("pointermove", (e) => { if (e.pointerId !== FINE.id) return; move(e.clientX, e.clientY); });
   const end = (e) => { if (e.pointerId !== FINE.id) return; FINE.id = null; FINE.v = 0; knob.classList.add("home"); setKnob(0, 0); ring.classList.remove("on"); trigSet("fine", false); };
   zone.addEventListener("pointerup", end); zone.addEventListener("pointercancel", end); zone.addEventListener("lostpointercapture", end);
-  $("lockBtn").addEventListener("click", (e) => { e.preventDefault(); toggleLock(); });
 }
 function recenter() {
   if (padTurnOn()) PAD.ref = PAD.heading;
@@ -1009,7 +1014,7 @@ function loop(ts) {
 function init() {
   if (typeof THREE === "undefined" || typeof CANNON === "undefined") { document.getElementById("zoneHint").textContent = "Could not load three.js / cannon.js from cdnjs."; return; }
   buildWorld($("cv")); PH = makePhys(); bindStick(); bindFine(); bindStrip(); bindSettings();
-  $("recenter").addEventListener("click", recenter); $("resetBtn").addEventListener("click", resetThisBall);
+  bindBtn($("lockBtn"), toggleLock, true); bindBtn($("recenter"), recenter); bindBtn($("resetBtn"), resetThisBall);
   if (window.ResizeObserver) new ResizeObserver(resize).observe($("view")); window.addEventListener("resize", resize); resize();
   setMode("strip"); applyTurn(); applyPad();
   newFrame(); requestAnimationFrame(loop);
