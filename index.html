@@ -990,7 +990,8 @@ function loop(ts) {
 function init() {
   if (typeof THREE === "undefined" || typeof CANNON === "undefined") { document.getElementById("zoneHint").textContent = "Could not load three.js / cannon.js from cdnjs."; return; }
   buildWorld($("cv")); PH = makePhys(); bindStick(); bindFine(); bindStrip(); bindSettings();
-  bindBtn($("lockBtn"), toggleLock, true, lockLift); bindBtn($("prompt"), askMotion); bindBtn($("resetBtn"), resetThisBall, true);
+  bindBtn($("lockBtn"), toggleLock, true, lockLift); bindBtn($("resetBtn"), resetThisBall, true);
+  $("prompt").addEventListener("click", askMotion);
   if (window.ResizeObserver) new ResizeObserver(resize).observe($("view")); window.addEventListener("resize", resize); resize();
   setMode("strip"); applyPad();
   newFrame(); requestAnimationFrame(loop);
