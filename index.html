@@ -548,7 +548,7 @@ const saveSettings = () => store.set("rcbowl.settings", S);
 if (DEAD_KEYS.length) saveSettings();
 const RING_R = 56, DEAD = 0.08;
 const CTL = { mode: "strip", heading: 0, lastRaw: null, ref: 0, strip: 0, askedAt: 0, got: false, gotAt: 0, perm: null,
-  stickId: null, defl: 0, theta: 0, bx: 0, by: 0, lock: false, lockPsi: 0, grip: false, gripTheta: 0, gripDefl: 0, trig: {}, px: 0, py: 0 };
+  stickId: null, dead: false, defl: 0, theta: 0, bx: 0, by: 0, lock: false, lockPsi: 0, grip: false, gripTheta: 0, gripDefl: 0, trig: {}, px: 0, py: 0 };
 const FINE = { id: null, bx: 0, by: 0, v: 0 };
 function psiC() { if (padTurnOn()) return wrap180(PAD.heading - PAD.ref); if (S.phoneTurn !== "on") return 0; return CTL.mode === "motion" ? wrap180(CTL.heading - CTL.ref) : CTL.strip; }
 const lockOn = () => CTL.lock && turnLive();
@@ -571,6 +571,7 @@ function gripDrop() {
   const l = G.log && G.log.trig; if (l && l.length && l[l.length - 1][1] == null) l[l.length - 1][1] = +G.t.toFixed(2);
   applyGrip();
 }
+let stickKill = () => {};
 let stickDraw = () => {};
 function applyGrip() { $("ring").classList.toggle("held", gripOn()); if (!gripOn()) stickDraw(); }
 function psiSteer() { return lockOn() ? CTL.lockPsi : psiC(); }
@@ -766,12 +767,13 @@ function bindStick() {
   const setKnob = (dx, dy) => { knob.style.transform = `translate(${dx}px,${dy}px)`; };
   zone.addEventListener("pointerdown", (e) => {
     if (CTL.stickId != null) return;
-    CTL.stickId = e.pointerId; try { zone.setPointerCapture(e.pointerId); } catch (_) {}
+    CTL.stickId = e.pointerId; CTL.dead = false; try { zone.setPointerCapture(e.pointerId); } catch (_) {}
     CTL.bx = e.clientX; CTL.by = e.clientY;
     ring.style.left = CTL.bx + "px"; ring.style.top = CTL.by + "px"; ring.classList.add("on"); knob.classList.remove("home");
     $("zoneHint").hidden = true; moveStick(e.clientX, e.clientY); e.preventDefault(); wake();
   });
   const moveStick = (px, py) => {
+    if (CTL.dead) return;
     let dx = px - CTL.bx, dy = py - CTL.by; const d = Math.hypot(dx, dy);
     if (d > RING_R) { const k = RING_R / d; dx *= k; dy *= k; }
     CTL.px = px; CTL.py = py; if (!gripOn()) setKnob(dx, dy); const m = Math.min(1, d / RING_R);
@@ -780,7 +782,8 @@ function bindStick() {
   zone.addEventListener("pointermove", (e) => { if (e.pointerId !== CTL.stickId) return; moveStick(e.clientX, e.clientY); });
   const home = () => { knob.classList.add("home"); setKnob(0, 0); ring.classList.remove("on"); };
   stickDraw = () => { if (CTL.stickId != null) moveStick(CTL.px, CTL.py); else home(); };
-  const end = (e) => { if (e.pointerId !== CTL.stickId) return; CTL.stickId = null; CTL.defl = 0; if (!gripOn()) home(); };
+  stickKill = () => { if (CTL.stickId == null) return; CTL.dead = true; CTL.defl = 0; home(); };
+  const end = (e) => { if (e.pointerId !== CTL.stickId) return; CTL.stickId = null; CTL.dead = false; CTL.defl = 0; if (!gripOn()) home(); };
   zone.addEventListener("pointerup", end); zone.addEventListener("pointercancel", end); zone.addEventListener("lostpointercapture", end);
   for (const el of [$("panel"), $("cv"), $("view")]) el.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
   document.addEventListener("dblclick", (e) => e.preventDefault()); document.addEventListener("gesturestart", (e) => e.preventDefault());
@@ -793,7 +796,7 @@ const G = { phase: "ready", ballNo: 1, pins1: 0, pins2: 0, p: null, prev: null, 
 const speed = () => G.p ? Math.hypot(G.p.vx, G.p.vy) : 0;
 const ballS = (p) => p.x - PL.APPROACH;
 function newBall() {
-  unlock(); gripDrop();
+  unlock(); stickKill(); gripDrop();
   G.p = makePlant(PL.APPROACH - S.ballStart, boardX(S.board)); G.eyeS = G.eyeCmd = DIM.eyeBackS; G.start = { eye: DIM.eyeBackS, s: -S.ballStart, x: boardX(S.board) }; G.gap = -S.ballStart - DIM.eyeBackS; G.prev = { x: G.p.x, y: G.p.y }; G.phase = "ready"; G.t = 0; G.tPush = null; G.stillT = 0; G.gut = null; G.entry = null; G.physT = 0;
   const r = G.rng; G.err = { near: 3.5 * gauss(r), far: 1.78 * gauss(r), ou: 1.6 * gauss(r) };
   G.log = { id: Date.now().toString(36) + Math.floor(G.rng() * 1e4).toString(36), time: new Date().toISOString(), ball: G.ballNo,
@@ -1014,7 +1017,7 @@ function loop(ts) {
 function init() {
   if (typeof THREE === "undefined" || typeof CANNON === "undefined") { document.getElementById("zoneHint").textContent = "Could not load three.js / cannon.js from cdnjs."; return; }
   buildWorld($("cv")); PH = makePhys(); bindStick(); bindFine(); bindStrip(); bindSettings();
-  bindBtn($("lockBtn"), toggleLock, true); bindBtn($("recenter"), recenter); bindBtn($("resetBtn"), resetThisBall);
+  bindBtn($("lockBtn"), toggleLock, true); bindBtn($("recenter"), recenter); bindBtn($("resetBtn"), resetThisBall, true);
   if (window.ResizeObserver) new ResizeObserver(resize).observe($("view")); window.addEventListener("resize", resize); resize();
   setMode("strip"); applyTurn(); applyPad();
   newFrame(); requestAnimationFrame(loop);
@@ -1037,7 +1040,7 @@ function init() {
     setEye(s) { G.eyeS = G.eyeCmd = s; return s; },
     setBall(s, x) { G.p.x = s + PL.APPROACH; G.p.y = x || 0; G.prev = { x: G.p.x, y: G.p.y }; placeBallMesh(G.p.x, G.p.y, 0, true); return [s, x || 0]; },
     frame() { return Object.assign({}, W.frame); },
-    state() { const p = G.p; return { pins: PH.inPlay.map((v, i) => v ? (PH.pinDown(i) ? 'down' : 'up') : 'gone'), spotErr: Math.max(0, ...PH.pins.map((b, i) => PH.inPlay[i] ? Math.hypot(b.position.x - b.spot[0], -b.position.z - b.spot[1]) : 0)), cardOpen: !$("card").hidden, eyeS: G.eyeS, phase: G.phase, ball: G.ballNo, s: p ? ballS(p) : null, x: p ? p.y : null, v: speed(), psi: psiC(), mode: CTL.mode, defl: CTL.defl, theta: CTL.theta, bx: CTL.bx, by: CTL.by, py: p ? p.y : 0, px: p ? p.x : 0, frames, pins1: G.pins1, pins2: G.pins2, frameDone: G.frameDone, res: G.res, physT: G.physT, cmdDir: G.cmdDir, lock: CTL.lock, lockOn: lockOn(), lockShown: !$("lockBtn").hidden, fine: FINE.v, fineId: FINE.id, fineDeg: fineDeg(), logLock: G.log && G.log.lock ? G.log.lock.map((x) => x.slice()) : null, grip: CTL.grip, gripOn: gripOn(), gripTheta: CTL.gripTheta, gripDefl: CTL.gripDefl, trigDown: trigDown(), logTrig: G.log && G.log.trig ? G.log.trig.map((x) => x.slice()) : null, stickId: CTL.stickId,
+    state() { const p = G.p; return { pins: PH.inPlay.map((v, i) => v ? (PH.pinDown(i) ? 'down' : 'up') : 'gone'), spotErr: Math.max(0, ...PH.pins.map((b, i) => PH.inPlay[i] ? Math.hypot(b.position.x - b.spot[0], -b.position.z - b.spot[1]) : 0)), cardOpen: !$("card").hidden, eyeS: G.eyeS, phase: G.phase, ball: G.ballNo, s: p ? ballS(p) : null, x: p ? p.y : null, v: speed(), psi: psiC(), mode: CTL.mode, defl: CTL.defl, theta: CTL.theta, bx: CTL.bx, by: CTL.by, py: p ? p.y : 0, px: p ? p.x : 0, frames, pins1: G.pins1, pins2: G.pins2, frameDone: G.frameDone, res: G.res, physT: G.physT, cmdDir: G.cmdDir, lock: CTL.lock, lockOn: lockOn(), lockShown: !$("lockBtn").hidden, fine: FINE.v, fineId: FINE.id, fineDeg: fineDeg(), logLock: G.log && G.log.lock ? G.log.lock.map((x) => x.slice()) : null, grip: CTL.grip, gripOn: gripOn(), gripTheta: CTL.gripTheta, gripDefl: CTL.gripDefl, trigDown: trigDown(), logTrig: G.log && G.log.trig ? G.log.trig.map((x) => x.slice()) : null, stickId: CTL.stickId, stickDead: CTL.dead,
       vy: p ? p.vy : null, vx: p ? p.vx : null, mesh: W.ball.position.toArray().map(v => +v.toFixed(3)), meshVis: W.ball.visible }; },
     settings(o) { if (o) { Object.assign(S, o); saveSettings(); } return Object.assign({}, S); },
     log: () => allShots(),
