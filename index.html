@@ -173,7 +173,6 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
     <div class="set padAdv"><label>Reset<small>the ball back at its start, pointing straight</small></label><div class="num" data-k="padReset" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set padAdv"><label>Next ball<small>on the result card</small></label><div class="num" data-k="padNext" data-min="-1" data-max="15" data-step="1"><button data-d="-1">−</button><output></output><button data-d="1">+</button></div></div>
     <div class="set"><label>Shot log<small id="logCount">0 balls kept</small></label><div style="display:flex;gap:6px"><button class="pill" id="copyLog">Copy shot log</button><button class="pill" id="clearLog">Clear…</button></div></div>
-    <div class="set"><label>Pins<small>start the frame again with a full rack</small></label><button class="pill" id="newFrameBtn">New frame (re-rack all pins)</button></div>
     <div class="set" id="clearAsk" hidden><label>Clear all kept balls?</label><div style="display:flex;gap:6px"><button class="pill" id="clearNo">Keep</button><button class="pill primary" id="clearYes">Clear</button></div></div>
     <div id="sheetMsg"></div>
     <textarea id="logTxt" readonly hidden></textarea>
@@ -946,7 +945,6 @@ function bindSettings() {
   $("padSetupBtn").addEventListener("click", () => { PAD.setup = !PAD.setup; paint(); });
   $("gear").addEventListener("click", () => { sheet.hidden = !sheet.hidden; $("sheetMsg").textContent = ""; $("logTxt").hidden = true; $("clearAsk").hidden = true; paint(); });
   $("sheetClose").addEventListener("click", () => { sheet.hidden = true; });
-  $("newFrameBtn").addEventListener("click", () => { newFrame(); sheet.hidden = true; });
   $("copyLog").addEventListener("click", () => {
     const txt = JSON.stringify(allShots()); const msg = $("sheetMsg"), ta = $("logTxt");
     const fallback = () => { ta.value = txt; ta.hidden = false; ta.focus(); ta.select(); msg.textContent = "Copy blocked here - the log is selected below; copy it by hand."; };
@@ -999,7 +997,7 @@ function init() {
   window.__sim = {
     project(x, y, z) { const v = new THREE.Vector3(x, y, z).project(W.camera), r = $("cv").getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height, z: v.z }; },
     cam() { const r = $("cv").getBoundingClientRect(), c = W.camera; return { fov: c.fov, pitch: c.rotation.x * 180 / Math.PI, yaw: -c.rotation.y * 180 / Math.PI, pos: [c.position.x, c.position.y, c.position.z], rect: { left: r.left, top: r.top, width: r.width, height: r.height }, dpr: W.renderer.getPixelRatio() }; },
-    dim: DIM, spots: PIN_SPOTS, boardX, plantRun, travelCmd, makePlant, plantStep, PL, chart: CHART.chart, chartF: [CHART.F0, CHART.F1], pinTest,
+    dim: DIM, spots: PIN_SPOTS, boardX, plantRun, travelCmd, makePlant, plantStep, PL, chart: CHART.chart, chartF: [CHART.F0, CHART.F1], pinTest, newFrame,
     tick(n) { for (let i = 0; i < (n || 1); i++) { if (G.phase === "ready" && pushing() && !PAD.stop) startPush(); if (G.phase !== "rolling") break; plantTick(); } return this.state(); },
     pollPad() { pollPad(); return this.pad(); },
     pad() { return { connected: PAD.connected, id: PAD.id, heading: PAD.heading, ref: PAD.ref, stop: PAD.stop, needCentre: PAD.needCentre, x: PAD.x, y: PAD.y, turnOn: padTurnOn(), fineAx: padFineAx(), fx: PAD.fx, fine: FINE.v, broken: PAD.broken }; },
