@@ -584,7 +584,7 @@ function awayInit() { const e = eyeTo(); AWAY.psi = e.d >= 0.2 ? e.deg : G.eyeYa
 function awayTake() {
   const e = eyeTo(); if (e.d < DIM.nearR) return;
   AWAY.psi = e.deg; AWAY.err = sensAt(e.d);
-  if (G.log) (G.log.up = G.log.up || []).push([+G.t.toFixed(2), +e.deg.toFixed(2), +e.d.toFixed(2)]);
+  if (G.log) { (G.log.up = G.log.up || []).push([+G.t.toFixed(2), +e.deg.toFixed(2), +e.d.toFixed(2)]); if (G.log.up.length > 200) G.log.up.shift(); }
 }
 function awayTick() {
   const push = pushing();
@@ -873,7 +873,7 @@ function logRow(psiLive, f) {
   if (Math.round(G.t * 100) % 10 !== 0) return; const p = G.p;
   G.log.series.push([+G.t.toFixed(2), +p.x.toFixed(3), +p.y.toFixed(4), +p.vx.toFixed(3), +p.vy.toFixed(3), +psiLive.toFixed(1), +CTL.theta.toFixed(1),
     +CTL.defl.toFixed(2), +G.eyeS.toFixed(3), +f.toFixed(2), lockOn() ? 1 : 0, gripOn() ? 1 : 0, +framePsi().toFixed(2), +G.eyeX.toFixed(3)]);
-  if (isFree() && G.log.series.length > 600) G.log.series.shift();
+  if (isFree() && G.log.series.length > 300) G.log.series.shift();
 }
 function freeEdge(p) {
   const F = DIM.free, R = DIM.ballR, s = ballS(p);
