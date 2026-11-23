@@ -580,7 +580,7 @@ const AWAY = { psi: 0, err: 0, on: false, tOff: -1e9 }, AWAY_GRACE = 0.25;
 const isFree = () => S.place === "free";
 const newCtl = () => isFree() || S.ctrl === "away";
 function eyeTo() { const p = G.p, ds = ballS(p) - G.eyeS, dx = p.y - G.eyeX; return { d: Math.hypot(ds, dx), deg: Math.atan2(dx, ds) * 180 / Math.PI }; }
-function awayInit() { const e = eyeTo(); AWAY.psi = e.d >= 0.2 ? e.deg : G.eyeYaw; AWAY.err = 0; AWAY.on = false; AWAY.tOff = -1e9; }
+function awayInit() { const e = eyeTo(); AWAY.psi = e.d >= 0.2 ? e.deg : G.eyeYaw; AWAY.err = newCtl() ? sensAt(e.d) : 0; AWAY.on = false; AWAY.tOff = -1e9; }
 function awayTake() {
   const e = eyeTo(); if (e.d < DIM.nearR) return;
   AWAY.psi = e.deg; AWAY.err = sensAt(e.d);
@@ -618,6 +618,7 @@ function framePsi() { return newCtl() ? AWAY.psi : psiSteer(); }
 function fineDeg() { return FINE.v * S.fineRange; }
 function courseNow() { return framePsi() + (pushing() && !PAD.stop ? stickTheta() : 0) + fineDeg(); }
 function drawCourse() {
+  if (newCtl()) { const mk = $("marker"); if (!mk.hidden) mk.style.transform = `rotate(${(AWAY.psi - G.eyeYaw).toFixed(2)}deg)`; }
   const el = $("course"), show = S.course === "on" && !!G.p && (G.phase === "ready" || G.phase === "rolling");
   if (el.hidden === show) el.hidden = !show;
   if (show) { const c = courseNow() - G.eyeYaw; if (!(Math.abs(c - el._c) < 0.05)) { el.style.transform = `rotate(${c.toFixed(2)}deg)`; el._c = c; } }
@@ -822,8 +823,8 @@ function newBall() {
   if (isFree()) { const F = DIM.free; G.p = makePlant(PL.APPROACH + F.ballS, 0); G.eyeS = G.eyeCmd = F.eyeS; G.eyeX = 0; G.start = null; G.gap = F.ballS - F.eyeS; }
   else { G.p = makePlant(PL.APPROACH - S.ballStart, boardX(S.board)); G.eyeS = G.eyeCmd = DIM.eyeBackS; G.eyeX = newCtl() ? boardX(S.board) : 0;
     G.start = { eye: DIM.eyeBackS, s: -S.ballStart, x: boardX(S.board) }; G.gap = -S.ballStart - DIM.eyeBackS; }
-  G.eyeYaw = 0; G.prev = { x: G.p.x, y: G.p.y }; G.phase = "ready"; G.t = 0; G.tPush = null; G.stillT = 0; G.gut = null; G.entry = null; G.physT = 0; awayInit();
-  const r = G.rng; G.err = { near: 3.5 * gauss(r), far: 1.78 * gauss(r), ou: 1.6 * gauss(r) };
+  G.eyeYaw = 0; G.prev = { x: G.p.x, y: G.p.y }; G.phase = "ready"; G.t = 0; G.tPush = null; G.stillT = 0; G.gut = null; G.entry = null; G.physT = 0;
+  const r = G.rng; G.err = { near: 3.5 * gauss(r), far: 1.78 * gauss(r), ou: 1.6 * gauss(r) }; awayInit();
   G.log = { id: Date.now().toString(36) + Math.floor(G.rng() * 1e4).toString(36), time: new Date().toISOString(), ball: G.ballNo,
     set: logSet(),
     cols: ["t", "x", "y", "vx", "vy", "psi_c", "stick_deg", "stick_defl", "eye_s", "fine_deg", "locked", "held", "up_deg", "eye_x"], series: [], lock: CTL.lock ? [[0, null]] : [],
@@ -950,12 +951,16 @@ function showCard(r, prevDown) {
 }
 let DB = null;
 function saveShot(rec) {
-  const all = store.get("rcbowl.shots", []); all.push(rec); while (all.length > 60) all.shift(); store.set("rcbowl.shots", all); MEMLOG.push(rec); while (MEMLOG.length > 60) MEMLOG.shift();
+  const all = store.get("rcbowl.shots", []); all.push(rec); while (all.length > 60) all.shift();
+  while (!store.set("rcbowl.shots", all) && all.length > 1) all.splice(0, Math.ceil(all.length / 4));
+  MEMLOG.push(rec); while (MEMLOG.length > 60) MEMLOG.shift();
   $("logCount").textContent = `${Math.max(all.length, MEMLOG.length)} balls kept`;
   if (DB) { try { const r = JSON.stringify(rec).length < 60000 ? rec : Object.assign({}, rec, { series: null }); Promise.resolve(DB.collection("shots").doc(rec.id).set(r)).catch(() => {}); } catch (e) {} }
 }
 const MEMLOG = [];
-function allShots() { const a = store.get("rcbowl.shots", null); return Array.isArray(a) && a.length >= MEMLOG.length ? a : MEMLOG; }
+function allShots() { const a = store.get("rcbowl.shots", null), m = MEMLOG[MEMLOG.length - 1];
+  return Array.isArray(a) && a.length >= MEMLOG.length && (!m || (a.length && a[a.length - 1].id === m.id)) ? a : MEMLOG; }
+function shotsToCopy() { const a = allShots().slice(); if (isFree() && G.log && G.phase === "rolling") a.push(Object.assign({}, G.log, { result: { driving: true, t: +G.t.toFixed(2) } })); return a; }
 const _q = new THREE.Quaternion(), _ax = new THREE.Vector3();
 function placeBallMesh(px, py, yLift, snap) {
   const b = W.ball, nx = py, nz = -(px - PL.APPROACH), ny = DIM.ballR + (yLift || 0);
@@ -1017,9 +1022,9 @@ function bindSettings() {
   $("gear").addEventListener("click", () => { sheet.hidden = !sheet.hidden; $("sheetMsg").textContent = ""; $("logTxt").hidden = true; $("clearAsk").hidden = true; paint(); });
   $("sheetClose").addEventListener("click", () => { sheet.hidden = true; });
   $("copyLog").addEventListener("click", () => {
-    const txt = JSON.stringify(allShots()); const msg = $("sheetMsg"), ta = $("logTxt");
+    const list = shotsToCopy(), txt = JSON.stringify(list); const msg = $("sheetMsg"), ta = $("logTxt");
     const fallback = () => { ta.value = txt; ta.hidden = false; ta.focus(); ta.select(); msg.textContent = "Copy blocked here - the log is selected below; copy it by hand."; };
-    try { navigator.clipboard.writeText(txt).then(() => { msg.textContent = `Copied ${allShots().length} balls (${(txt.length / 1024).toFixed(1)} KB).`; }, fallback); } catch (e) { fallback(); }
+    try { navigator.clipboard.writeText(txt).then(() => { msg.textContent = `Copied ${list.length} balls (${(txt.length / 1024).toFixed(1)} KB).`; }, fallback); } catch (e) { fallback(); }
   });
   $("clearLog").addEventListener("click", () => { $("clearAsk").hidden = false; });
   $("clearNo").addEventListener("click", () => { $("clearAsk").hidden = true; });
@@ -1037,8 +1042,9 @@ function eyeTickFree(dt) {
   if (e.d > 0.25) G.eyeYaw = wrap180(G.eyeYaw + clamp(wrap180(e.deg - G.eyeYaw) * Math.min(1, dt / 0.10), -400 * dt, 400 * dt));
 }
 function applyMode() {
-  const free = isFree(); W.hall.visible = !free; W.free.visible = free; PL.flat = free;
-  CTL.lock = !newCtl(); $("app").classList.toggle("free", free); $("hDistLbl").textContent = free ? "from you" : "to head pin";
+  const free = isFree(), nc = newCtl(); W.hall.visible = !free; W.free.visible = free; PL.flat = free;
+  if (G.log && (G.phase === "rolling" || G.phase === "gutter" || G.phase === "pins")) { G.log.result = { switched: true, at: G.phase }; saveShot(G.log); }
+  if (applyMode.nc !== nc) CTL.lock = !nc; applyMode.nc = nc; $("app").classList.toggle("free", free); $("hDistLbl").textContent = free ? "from you" : "to head pin";
   W.renderer.setClearColor(free ? 0x1b2330 : 0x07080a, 1);
   newFrame();
 }
@@ -1080,7 +1086,7 @@ function init() {
   window.__sim = {
     project(x, y, z) { const v = new THREE.Vector3(x, y, z).project(W.camera), r = $("cv").getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height, z: v.z }; },
     cam() { const r = $("cv").getBoundingClientRect(), c = W.camera; return { fov: c.fov, pitch: c.rotation.x * 180 / Math.PI, yaw: -c.rotation.y * 180 / Math.PI, pos: [c.position.x, c.position.y, c.position.z], rect: { left: r.left, top: r.top, width: r.width, height: r.height }, dpr: W.renderer.getPixelRatio() }; },
-    dim: DIM, spots: PIN_SPOTS, boardX, plantRun, travelCmd, makePlant, plantStep, PL, chart: CHART.chart, chartF: [CHART.F0, CHART.F1], pinTest, newFrame, applyMode,
+    dim: DIM, spots: PIN_SPOTS, boardX, plantRun, travelCmd, makePlant, plantStep, PL, chart: CHART.chart, chartF: [CHART.F0, CHART.F1], pinTest, newFrame, applyMode, copyList: shotsToCopy,
     away() { return Object.assign({ near: DIM.nearR, grace: AWAY_GRACE }, AWAY, eyeTo()); },
     eye(dt) { if (isFree()) eyeTickFree(dt); else eyeTick(dt); return { s: G.eyeS, x: G.eyeX, yaw: G.eyeYaw, d: eyeTo().d }; },
     tick(n) { for (let i = 0; i < (n || 1); i++) { if (G.phase === "ready" && pushing() && !PAD.stop) startPush(); if (G.phase !== "rolling") break; plantTick(); } return this.state(); },
@@ -1099,6 +1105,7 @@ function init() {
     frame() { return Object.assign({}, W.frame); },
     state() { const p = G.p; return { pins: PH.inPlay.map((v, i) => v ? (PH.pinDown(i) ? 'down' : 'up') : 'gone'), spotErr: Math.max(0, ...PH.pins.map((b, i) => PH.inPlay[i] ? Math.hypot(b.position.x - b.spot[0], -b.position.z - b.spot[1]) : 0)), cardOpen: !$("card").hidden, eyeS: G.eyeS, phase: G.phase, ball: G.ballNo, s: p ? ballS(p) : null, x: p ? p.y : null, v: speed(), psi: psiC(), mode: CTL.mode, defl: CTL.defl, theta: CTL.theta, bx: CTL.bx, by: CTL.by, py: p ? p.y : 0, px: p ? p.x : 0, frames, pins1: G.pins1, pins2: G.pins2, frameDone: G.frameDone, res: G.res, physT: G.physT, cmdDir: G.cmdDir, lock: CTL.lock, lockOn: lockOn(), lockShown: !$("lockBtn").hidden, fine: FINE.v, fineId: FINE.id, fineDeg: fineDeg(), logLock: G.log && G.log.lock ? G.log.lock.map((x) => x.slice()) : null, grip: CTL.grip, gripOn: gripOn(), gripTheta: CTL.gripTheta, gripDefl: CTL.gripDefl, trigDown: trigDown(), logTrig: G.log && G.log.trig ? G.log.trig.map((x) => x.slice()) : null, stickId: CTL.stickId, stickDead: CTL.dead,
       ctrl: newCtl() ? "away" : "point", place: S.place, up: AWAY.psi, upOn: AWAY.on, eyeX: G.eyeX, eyeYaw: G.eyeYaw, logUp: G.log && G.log.up ? G.log.up.map((x) => x.slice()) : null, hall: W.hall.visible, freeFloor: W.free.visible,
+      ring: { visible: W.nearRing.visible, x: W.nearRing.position.x, s: -W.nearRing.position.z }, upErr: AWAY.err,
       vy: p ? p.vy : null, vx: p ? p.vx : null, mesh: W.ball.position.toArray().map(v => +v.toFixed(3)), meshVis: W.ball.visible }; },
     settings(o) { if (o) { Object.assign(S, o); saveSettings(); } return Object.assign({}, S); },
     log: () => allShots(),
