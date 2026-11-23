@@ -201,7 +201,7 @@ const DIM = {
   eyeBackS: -15 * FT,
   walkVmax: 2.0, walkTau: 0.25, eyeStopS: -0.30,
   nearR: 1.0,
-  free: { s0: -10, s1: 30, half: 20, eyeS: -4, ballS: -2, leash: 4 },
+  free: { s0: -15, s1: 15, half: 15, eyeS: 0, ballS: 2 },
 };
 DIM.board = DIM.laneW / 39;
 DIM.headS = DIM.laneLen;
@@ -430,10 +430,10 @@ function buildFree(scene) {
   const F = DIM.free, g = new THREE.Group(); g.visible = false; scene.add(g); W.free = g;
   const L = F.s1 - F.s0, Wd = 2 * F.half, cs = (F.s0 + F.s1) / 2;
   const tex = canvasTex(512, 512, (c, w, h) => {
-    c.fillStyle = "#737b85"; c.fillRect(0, 0, w, h); const k = w / 4;
-    c.strokeStyle = "rgba(22,26,32,.6)"; c.lineWidth = 2; for (let i = 1; i < 4; i++) { c.beginPath(); c.moveTo(i * k, 0); c.lineTo(i * k, h); c.moveTo(0, i * k); c.lineTo(w, i * k); c.stroke(); }
+    c.fillStyle = "#737b85"; c.fillRect(0, 0, w, h); const k = w / 5;
+    c.strokeStyle = "rgba(22,26,32,.6)"; c.lineWidth = 2; for (let i = 1; i < 5; i++) { c.beginPath(); c.moveTo(i * k, 0); c.lineTo(i * k, h); c.moveTo(0, i * k); c.lineTo(w, i * k); c.stroke(); }
     c.strokeStyle = "rgba(236,240,247,.8)"; c.lineWidth = 6; c.strokeRect(0, 0, w, h);
-  }, Wd / 4, L / 4);
+  }, Wd / 5, L / 5);
   addFlat(g, new THREE.PlaneGeometry(Wd, L), new THREE.MeshPhongMaterial({ map: tex, shininess: 25, specular: 0x1a1a1a }), 0, cs);
   const wall = (w, d, x, s, col) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.6, d), new THREE.MeshPhongMaterial({ color: col, shininess: 15 })); m.position.set(x, 0.3, -s); g.add(m); };
   wall(Wd + 0.4, 0.2, 0, F.s1 + 0.1, 0x3d5a8c); wall(Wd + 0.4, 0.2, 0, F.s0 - 0.1, 0x3f7a55); wall(0.2, L, F.half + 0.1, cs, 0xa0503e); wall(0.2, L, -F.half - 0.1, cs, 0xa07f2e);
@@ -1033,8 +1033,7 @@ function eyeTick(dt) {
   G.eyeS = Math.min(DIM.eyeStopS, G.eyeS + clamp((G.eyeCmd - G.eyeS) / DIM.walkTau, 0, DIM.walkVmax) * dt);
 }
 function eyeTickFree(dt) {
-  if (!(dt > 0)) return; const e = eyeTo(), r = Math.PI / 180, far = e.d - DIM.free.leash;
-  if (far > 0) { const st = Math.min(far, clamp(far / DIM.walkTau, 0, DIM.walkVmax) * dt); G.eyeS += st * Math.cos(e.deg * r); G.eyeX += st * Math.sin(e.deg * r); }
+  if (!(dt > 0)) return; const e = eyeTo();
   if (e.d > 0.25) G.eyeYaw = wrap180(G.eyeYaw + clamp(wrap180(e.deg - G.eyeYaw) * Math.min(1, dt / 0.10), -400 * dt, 400 * dt));
 }
 function applyMode() {

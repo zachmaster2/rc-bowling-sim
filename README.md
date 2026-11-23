@@ -15,7 +15,7 @@ The page opens with **new controls**. The old ones are still in it (Settings > C
 - **On the lane you stand behind your ball**, so the first "up" is straight down the lane.
 - **The amber marker** shows where "up" is now and the blue arrow where the ball is being sent. On the lane the top bar shows "up" in degrees from straight down the lane.
 
-**Free play** (Settings > Floor > Free play) is an open floor 40 m square with a 1 m grid and a low wall of its own colour on each side: blue ahead of where you start, green behind, red to the right, amber to the left. There are no pins. The view is your own eyes: it turns to keep the ball in sight, and you walk after the ball once it is more than 4 m away. The ball can come at you, pass through where you stand and go on behind you. Free play always has the new controls. Reset puts the ball and you back where you started.
+**Free play** (Settings > Floor > Free play) is an open floor 30 m square with a 1 m grid and a low wall of its own colour on each side: blue ahead of where you start, green behind, red to the right, amber to the left. There are no pins. You stand at the middle of the floor and stay there; the view is your own eyes, and it only turns to keep the ball in sight. The ball can come at you, pass through where you stand and go on behind you. Free play always has the new controls. Reset puts the ball back in front of you.
 
 Not modelled: how well the real ball could find you at close range (the 1 m circle is a guess). With Sensing set to "As designed" the error figures are borrowed from the old controls.
 
