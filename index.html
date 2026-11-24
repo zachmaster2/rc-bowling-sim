@@ -843,7 +843,8 @@ function sensErr(dt) {
   G.err.ou = rho * G.err.ou + Math.sqrt(1 - rho * rho) * 1.6 * gauss(G.rng);
   return (1 - w) * G.err.near + w * G.err.far + G.err.ou;
 }
-function sensAt(d) { if (S.sensing !== "designed") return 0; const w = clamp((d - 3.5) / 1.0, 0, 1); return (1 - w) * G.err.near + w * G.err.far + 1.6 * gauss(G.rng); }
+const AWAY_ERR = { take: 4.0, ball: 2.1, hand: 0.02 };
+function sensAt(d) { if (S.sensing !== "designed") return 0; return AWAY_ERR.ball * G.err.near / 3.5 + Math.hypot(AWAY_ERR.take, AWAY_ERR.hand / Math.max(d, 0.4) * 180 / Math.PI) * gauss(G.rng); }
 function plantTick() {
   const DT = PL.DT, p = G.p, s = ballS(p); G.t += DT;
   if (window.__testTick) { try { window.__testTick(s); } catch (e) {} }
