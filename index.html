@@ -58,6 +58,7 @@ button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none;touc
 #app.tv #padKeys span{font-size:clamp(13px,.95vw,20px)}
 .padhint{align-self:center;margin-right:auto;color:var(--ink-dim);font-size:.85em}
 .set small.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;word-break:break-all;margin-top:2px}
+#padLive{white-space:pre-wrap}
 .pill{height:30px;padding:0 12px;border-radius:15px;border:1px solid var(--line);background:var(--card);font-size:12px;cursor:pointer}
 .pill.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
 /* result card */
@@ -626,6 +627,11 @@ function drawCourse() {
 const PAD = { connected: false, id: "", mapping: "", axes: [], buttons: [], heading: 0, lastRaw: null, ref: 0, prev: [], stop: false, needCentre: false,
   setup: false, lastInfo: 0, broken: false, x: 0, y: 0 };
 const PAD_DEAD = 0.12;
+const RCB = { axes: ["Main stick left–right", "Main stick forward–back", "turn", "Precision stick left–right", "Precision stick forward–back", "left trigger", "right trigger"],
+  keys: { 0: "right key A", 1: "right key B", 3: "left key", 6: "left trigger", 7: "right trigger", 8: "power key", 10: "left thumb pad", 11: "right thumb pad", 12: "spare key", 13: "spare key", 14: "spare key", 15: "spare key" } };
+function rcbOn() { return PAD.connected && /RC Bowling/i.test(PAD.id) && PAD.mapping !== "standard" && PAD.axes.length >= RCB.axes.length; }
+function rcbKey(i) { return RCB.keys[i] || "nothing on this controller"; }
+function rcbPaint() { const n = rcbOn(); if (n !== !!PAD.named) { PAD.named = n; paintNums(); padInfo(true); } }
 function padFineAx() { if (!PAD.connected) return -1; if (S.padFineX >= 0) return S.padFineX; if (PAD.mapping === "standard") return 2; return /RC Bowling/i.test(PAD.id) && PAD.axes.length >= 4 ? 3 : -1; }
 function padTurnOn() { return PAD.connected && S.padTurnAx >= 0 && S.padTurnAx !== padFineAx(); }
 function pollPad() {
@@ -636,7 +642,7 @@ function pollPad() {
   if (!gp) { if (PAD.connected) padLost(); return; }
   const btn = Array.from(gp.buttons || [], (b) => !!(b && (b.pressed || b.value > 0.5)));
   if (!PAD.connected || PAD.id !== gp.id) padFound(gp, btn);
-  PAD.axes = Array.from(gp.axes || [], (v) => +v || 0); PAD.buttons = btn;
+  PAD.axes = Array.from(gp.axes || [], (v) => +v || 0); PAD.buttons = btn; rcbPaint();
   const ax = (i) => (i >= 0 && i < PAD.axes.length ? PAD.axes[i] : 0), bt = (i) => i >= 0 && !!PAD.buttons[i], press = (i) => bt(i) && !PAD.prev[i];
   if (S.padTurnAx >= 0 && S.padTurnAx < PAD.axes.length) {
     const h = ax(S.padTurnAx) * 180; if (PAD.lastRaw == null) { PAD.heading = h; PAD.ref = h; } else PAD.heading += wrap180(h - PAD.lastRaw); PAD.lastRaw = h;
@@ -664,7 +670,7 @@ function padLost() {
   PAD.connected = false; PAD.lastRaw = null; if (PAD.stop) stopUp(); trigSet("pad", false);
   if (PAD.fineOwned && FINE.id == null) { FINE.v = 0; PAD.fineOwned = false; } PAD.fx = 0;
   if (CTL.stickId == null) CTL.defl = 0;
-  applyPad();
+  applyPad(); rcbPaint();
 }
 function applyPad() {
   const on = PAD.connected, hide = on && S.padPanel === "hide", app = $("app");
@@ -689,6 +695,8 @@ function padInfo(force) {
   if (!PAD.connected) { note.textContent = PAD.broken ? "this page cannot read gamepads here" : "none connected: pair it with this computer by Bluetooth, then press one of its buttons"; live.textContent = ""; return; }
   note.textContent = `connected: ${PAD.id}${PAD.mapping === "standard" ? " (standard layout)" : ""}`;
   const sg = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(2)}`, pr = PAD.buttons.map((b, i) => (b ? i + 1 : 0)).filter(Boolean).join(" ") || "none";
+  if (rcbOn()) { live.textContent = RCB.axes.map((n, i) => `axis ${i + 1}  ${sg(PAD.axes[i])}  ${n}${i === S.padTurnAx && padTurnOn() ? `  (${psiC() >= 0 ? "+" : "−"}${Math.abs(psiC()).toFixed(1)}°)` : ""}`).join("\n")
+    + `\npressed: ${PAD.buttons.map((b, i) => (b ? `${i + 1} ${rcbKey(i)}` : "")).filter(Boolean).join(", ") || "none"}`; return; }
   live.textContent = `axes ${PAD.axes.map((v, i) => `${i + 1}:${sg(v)}`).join(" ")} · pressed ${pr}${padTurnOn() ? ` · turn ${psiC() >= 0 ? "+" : "−"}${Math.abs(psiC()).toFixed(1)}°` : ""}${padFineAx() >= 0 ? ` · precision: axis ${padFineAx() + 1}` : ""}`;
 }
 function headingOf(a, b, g) {
@@ -999,14 +1007,15 @@ function numText(k, v) {
   if (k === "fineRange") return `±${+v}°`;
   if (k === "padFineX") return +v < 0 ? "auto" : `axis ${+v + 1}`;
   if (k === "padX" || k === "padY" || k === "padTurnAx") return +v < 0 ? "none" : `axis ${+v + 1}`;
-  if (/^pad(Stop|Reset|Next|Lock|Trig)$/.test(k)) return +v < 0 ? "none" : `button ${+v + 1}`;
+  if (/^pad(Stop|Reset|Next|Lock|Trig)$/.test(k)) return +v < 0 ? "none" : `button ${+v + 1}${rcbOn() ? ` · ${rcbKey(+v)}` : ""}`;
   return String(v);
 }
+function paintNums() { $("sheet").querySelectorAll(".num").forEach((n) => { const k = n.dataset.k; n.querySelector("output").textContent = numText(k, S[k]); }); }
 function bindSettings() {
   const sheet = $("sheet");
   const paint = () => {
     sheet.querySelectorAll(".seg").forEach((seg) => seg.querySelectorAll("button").forEach((b) => b.classList.toggle("on", String(S[seg.dataset.k]) === b.dataset.v)));
-    sheet.querySelectorAll(".num").forEach((n) => { const k = n.dataset.k; n.querySelector("output").textContent = numText(k, S[k]); });
+    paintNums();
     sheet.querySelectorAll(".padSet").forEach((r) => { r.hidden = !PAD.connected && !PAD.setup; });
     sheet.querySelectorAll(".padAdv").forEach((r) => { r.hidden = !PAD.setup; });
     sheet.querySelectorAll(".laneOnly").forEach((r) => { r.hidden = isFree(); }); $("ctrlRow").hidden = isFree();
